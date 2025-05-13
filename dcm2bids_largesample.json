@@ -1,0 +1,169 @@
+{
+    "descriptions": [
+      {
+        "datatype": "anat",
+        "suffix": "t1w",
+        "criteria": {
+          "SeriesDescription": "*MP*RAGE*"
+        }
+      },
+      {
+        "datatype": "anat",
+        "suffix": "T1w",
+        "criteria": {
+          "SeriesDescription": "T1_mprage_short"
+        }
+      },
+      {
+        "datatype": "anat",
+        "suffix": "t1w",
+        "criteria": {
+          "SeriesDescription": "*MPR*"
+        }
+      },
+      {
+        "datatype": "anat",
+        "suffix": "t1w",
+        "criteria": {
+          "SeriesDescription": "*[Tt]1*"
+        }
+      },
+      {
+        "datatype": "anat",
+        "suffix": "t2w",
+        "criteria": {
+          "SeriesDescription": "*T2*SPACE*"
+        }
+      },
+      {
+        "datatype": "anat",
+        "suffix": "t2w",
+        "criteria": {
+          "SeriesDescription": "*T2*VISTA*"
+        }
+      },
+      {
+        "datatype": "anat",
+        "suffix": "t2w",
+        "criteria": {
+          "SeriesDescription": "*[Tt]2*"
+        }
+      },
+      {
+        "datatype": "anat",
+        "suffix": "flair",
+        "criteria": {
+          "SeriesDescription": "*TFLR*"
+        }
+      },
+      {
+        "datatype": "anat",
+        "suffix": "flair",
+        "criteria": {
+          "SeriesDescription": "*FLAIR*"
+        }
+      },
+  
+      {
+        "datatype": "dwi",
+        "suffix": "dwi",
+        "criteria": {
+          "SeriesDescription": "*DTI*"
+        }
+      },
+      {
+        "datatype": "dwi",
+        "suffix": "dwi",
+        "criteria": {
+          "SeriesDescription": "*HARDI*"
+        }
+      },
+      {
+        "datatype": "dwi",
+        "suffix": "dwi",
+        "criteria": {
+          "SeriesDescription": "*Diffusion*"
+        }
+      },
+      {
+        "datatype": "dwi",
+        "suffix": "dwi",
+        "criteria": {
+          "SeriesDescription": "*dir*"
+        }
+      },
+      {
+        "datatype": "dwi",
+        "suffix": "dwi",
+        "criteria": {
+          "SeriesDescription": "*ADC*"
+        }
+      },
+      {
+        "datatype": "dwi",
+        "suffix": "dwi",
+        "criteria": {
+          "SeriesDescription": "*TRACEW*"
+        }
+      },
+      {
+        "datatype": "dwi",
+        "suffix": "dwi",
+        "criteria": {
+          "SeriesDescription": "*ColFA*"
+        }
+      },
+      {
+        "datatype": "dwi",
+        "suffix": "dwi",
+        "criteria": {
+          "SeriesDescription": "*FA*"
+        }
+      },
+  
+      {
+        "datatype": "func",
+        "suffix": "task-rest_bold",
+        "criteria": {
+          "SeriesDescription": "*Resting*"
+        }
+      },
+      {
+        "datatype": "func",
+        "suffix": "task-rest_bold",
+        "criteria": {
+          "SeriesDescription": "*REST*"
+        }
+      },
+      {
+        "datatype": "func",
+        "suffix": "task-lang_bold",
+        "criteria": {
+          "SeriesDescription": "*Language*"
+        }
+      },
+      {
+        "datatype": "func",
+        "suffix": "bold",
+        "criteria": {
+          "SeriesDescription": "*[Ff]MRI*"
+        }
+      },
+  
+      {
+        "datatype": "fmap",
+        "suffix": "magnitude",
+        "criteria": {
+          "SeriesDescription": "*B0_MAP*"
+        }
+      },
+      {
+        "datatype": "other",
+        "suffix": "localizer",
+        "criteria": {
+          "SeriesDescription": "*loc*"
+        }
+      }
+    ]
+  }
+  
