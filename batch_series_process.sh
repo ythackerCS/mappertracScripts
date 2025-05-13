@@ -1,8 +1,8 @@
 #!/bin/bash
 
 output_file="unique_series_descriptions.txt"
-helper_path="/ceph/chpc/shared/shinjini_kundu_group/working/yash_test/tbm_autism-BIDS/code/tmp_dcm2bids/helper/tbm-autism"
-tmp_dir="/ceph/chpc/shared/shinjini_kundu_group/working/yash_test/tbm_autism-BIDS/code/tmp_dcm2bids"  # Path to tmp_dcm2bids
+helper_path="/ceph/chpc/shared/shinjini_kundu_group/working/yash_test/tbm_autism-BIDS/mappertracScripts/tmp_dcm2bids/helper/tbm-autism"
+tmp_dir="/ceph/chpc/shared/shinjini_kundu_group/working/yash_test/tbm_autism-BIDS/mappertracScripts/tmp_dcm2bids"  # Path to tmp_dcm2bids
 touch $output_file  # Ensure the file exists
 
 # Only process the first folder for testing
