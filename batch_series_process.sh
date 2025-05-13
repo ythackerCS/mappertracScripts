@@ -1,8 +1,16 @@
 #!/bin/bash
 
+# Load necessary module
+module load dcm2niix/4.11.23
+
+# Activate conda environment
+source ~/miniconda/etc/profile.d/conda.sh
+conda activate /ceph/chpc/shared/shinjini_kundu_group/working/yash_test/mappertracenv
+
 output_file="unique_series_descriptions.txt"
 helper_path="/ceph/chpc/shared/shinjini_kundu_group/working/yash_test/tbm_autism-BIDS/mappertracScripts/tmp_dcm2bids/helper/tbm-autism"
-tmp_dir="/ceph/chpc/shared/shinjini_kundu_group/working/yash_test/tbm_autism-BIDS/mappertracScripts/tmp_dcm2bids"  # Path to tmp_dcm2bids
+tmp_dir="/ceph/chpc/shared/shinjini_kundu_group/working/yash_test/tbm_autism-BIDS/mappertracScripts/tmp_dcm2bids"
+
 touch $output_file  # Ensure the file exists
 
 # Only process the first folder for testing
@@ -30,4 +38,3 @@ done
 
 # Cleanup
 rm -f temp_series_output.txt new_series.txt
-
