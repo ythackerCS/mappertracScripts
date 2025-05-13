@@ -1,0 +1,99 @@
+{
+    "descriptions": [
+        {
+            "datatype": "anat",
+            "suffix": "t1w",
+            "criteria": {
+	            "SeriesDescription": "*MP*RAGE*"
+            }
+        },
+        {
+            "datatype": "anat",
+            "suffix": "T1w",
+            "criteria": {
+	            "SeriesDescription": "T1_mprage_short"
+            }
+        },
+        {
+            "datatype": "anat",
+            "suffix": "flair",
+            "criteria": {
+                    "SeriesDescription": "*TFLR*"
+            }
+        },
+	    {
+            "datatype": "anat",
+            "suffix": "t2w",
+            "criteria": {
+                    "SeriesDescription": "*T2*SPACE*"
+            }
+        },
+
+    
+        {
+            "datatype": "dwi",
+            "suffix": "dwi",
+            "criteria": {
+                    "SeriesDescription": "*DTI*"
+            }
+        },
+        {
+            "datatype": "dwi",
+            "suffix": "dwi",
+            "criteria": {
+                    "SeriesDescription": "*HARDI*"
+            }
+        },
+
+        {
+            "datatype": "func",
+            "suffix": "task-rest_bold",
+            "criteria": {
+                    "SeriesDescription": "*Resting*"
+            }
+        },
+        {
+            "datatype": "func",
+            "suffix": "task-lang_bold",
+            "criteria": {
+                    "SeriesDescription": "*Language*"
+            }
+        },
+        {
+            "datatype": "anat",
+            "suffix": "t2w",
+            "criteria": {
+                    "SeriesDescription": "*T2*VISTA*"
+            }
+        },
+        {
+            "datatype": "func",
+            "suffix": "task-rest_bold",
+            "criteria": {
+                    "SeriesDescription": "*REST*"
+            }
+        },
+        {
+            "datatype": "dwi",
+            "suffix": "dwi",
+            "criteria": {
+                    "SeriesDescription": "*Diffusion*"
+            }
+        },
+        {
+            "datatype": "dwi",
+            "suffix": "dwi",
+            "criteria": {
+                    "SeriesDescription": "*dir*"
+            }
+        },
+        {
+            "datatype": "anat",
+            "suffix": "t1w",
+            "criteria": {
+	            "SeriesDescription": "*MPR*"
+            }
+        }
+    ]
+}
+

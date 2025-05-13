@@ -1,0 +1,111 @@
+act_MoCoSeries
+bas_MoCoSeries
+Design
+ep2d_advdiff_511C_b0_4avs
+ep2d_advdiff_511C_DTI30
+ep2d_advdiff_511C_DTI30_ADC
+ep2d_advdiff_511C_DTI30_ColFA
+ep2d_advdiff_511C_DTI30_FA
+ep2d_advdiff_511C_DTI30_TRACEW
+ep2d_advdiff_511C_HARDI1
+ep2d_advdiff_511C_HARDI1_ADC
+ep2d_advdiff_511C_HARDI1_ColFA
+ep2d_advdiff_511C_HARDI1_FA
+ep2d_advdiff_511C_HARDI1_TRACEW
+ep2d_advdiff_511C_HARDI2
+ep2d_advdiff_511C_HARDI2_ADC
+ep2d_advdiff_511C_HARDI2_ColFA
+ep2d_advdiff_511C_HARDI2_FA
+ep2d_advdiff_511C_HARDI2_TRACEW
+EvaSeries_GLM
+fMRI Faces 1
+fMRI Language 1
+fMRI Language 2
+fMRI Movies 1
+fMRI Resting 1
+fMRI Resting 2
+fMRI Toys 1
+fMRI Toys 2
+intermediate t-Map
+localizer
+Mean_&_t-Maps
+MEMPRAGE
+MEMPRAGE RMS
+MoCoSeries
+StartFMRI
+fMRI Faces 2
+3DB0_MAP
+3D_Brain_View_FLAIR_SHC
+AX 3DT2
+AX Diffusion VOXEL 2
+COR 3DT2
+DTI_HR
+MP-RAGE
+REST FMRI
+SSh_FLAIR
+SSh_TSE
+T1W_FFE
+T2W_VISTA
+T2_SPACE
+TFLR 3D
+fMRI Movies 2
+FLAIR_VISTA
+Survey
+cor. loc.
+ep2d_advdiff_511_30dir
+ep2d_advdiff_511_30dir_ADC
+ep2d_advdiff_511_30dir_ColFA
+ep2d_advdiff_511_30dir_FA
+ep2d_advdiff_511_30dir_TRACEW
+ep2d_advdiff_511_HARDI1
+ep2d_advdiff_511_HARDI1_ADC
+ep2d_advdiff_511_HARDI1_ColFA
+ep2d_advdiff_511_HARDI1_FA
+ep2d_advdiff_511_HARDI1_TRACEW
+ep2d_advdiff_511_HARDI2
+ep2d_advdiff_511_HARDI2_ADC
+ep2d_advdiff_511_HARDI2_ColFA
+ep2d_advdiff_511_HARDI2_EXP
+ep2d_advdiff_511_HARDI2_FA
+ep2d_advdiff_511_HARDI2_TRACEW
+ep2d_FMRI_face1_110_measurement
+ep2d_FMRI_lang1_110_measurements
+ep2d_FMRI_lang2_110_measurements
+ep2d_FMRI_resting_1
+ep2d_FMRI_resting_2
+sag. loc.
+t1_vibe_tra_pat2
+tfl_mgh_multiecho_3D_1mm_iso_MGHprotocol
+tfl_mgh_multiecho_3D_1mm_iso_MGHprotocol RMS
+three plane localizer
+ep2d_FMRI_Movie1
+ep2d_FMRI_Movie2
+ep2d_FMRI_TOYS1
+ep2d_FMRI_TOYS2
+t1 mpr cor. loc.
+t1 mpr sag. loc.
+t2_tse3dvfl_tra_st2_p2
+CORONAL LOC.
+SAGITTAL LOC.
+cor recon
+ep2d_FMRI_face_110_measurement
+ep2d_FMRI_lang_110_measurements
+ep2d_FMRI_resting
+sag recon
+T1 MPR TRA 1 MM TI 868
+cor mpr recon
+ep2d_FMRI_face2_110_measurement
+<MPR Range>
+<MPR Thick Range>
+T2_SPACE SAG
+TFLR 3D SAG
+3DB0_MAP CLEAR
+AX Diffusion VOXEL 2 SENSE
+AX T1 TSE CLEAR
+DTI_HR SENSE
+FLAIR_MV2 CLEAR
+FLAIR_VISTA SENSE
+MP-RAGE CLEAR
+REST FMRI SENSE
+T2W_MV2 CLEAR
+T2W_VISTA SENSE
