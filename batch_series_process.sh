@@ -6,7 +6,7 @@ tmp_dir="/ceph/chpc/shared/shinjini_kundu_group/working/yash_test/tbm_autism-BID
 touch $output_file  # Ensure the file exists
 
 # Only process the first folder for testing
-for folder in 15024.x1_60_FCAP1 14723.x10_60_FCAP1  14751.x6_60_FCAP1   14784.x15_50_FCAP1  14819.x1_60_FCAP1   14851.x1_60_FCAP1   14879.x4_60_FCAP1   14909.x13_60_FCAP1  14933.x1_60_FCAP1  14969.x7_20_SCAP1   15031.x1_60_FCAP1 14723.x17_60_FCAP1  14755.x15_60_FCAP1  14786.x23_60_FCAP1  14820.x12_50_FCAP1; do
+for folder in 15024.x1_60_FCAP1 14723.x10_60_FCAP1 14751.x6_60_FCAP1 14784.x15_50_FCAP1 14819.x1_60_FCAP1 14851.x1_60_FCAP1 14879.x4_60_FCAP1 14909.x13_60_FCAP1 14933.x1_60_FCAP1 14969.x7_20_SCAP1 15031.x1_60_FCAP1 14723.x17_60_FCAP1 14755.x15_60_FCAP1 14786.x23_60_FCAP1 14820.x12_50_FCAP1; do
 
   echo "Running dcm2bids_helper for $folder"
   dcm2bids_helper -n tbm-autism -d /ceph/chpc/shared/shinjini_kundu_group/working/yash_test/compatiblesubjects/$folder
