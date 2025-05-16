@@ -44,13 +44,6 @@
       },
       {
         "datatype": "anat",
-        "suffix": "t2w",
-        "criteria": {
-          "SeriesDescription": "*[Tt]2*"
-        }
-      },
-      {
-        "datatype": "anat",
         "suffix": "flair",
         "criteria": {
           "SeriesDescription": "*TFLR*"
@@ -75,7 +68,14 @@
         "datatype": "dwi",
         "suffix": "dwi",
         "criteria": {
-          "SeriesDescription": "*HARDI*"
+          "SeriesDescription": "*HARDI?"
+        }
+      },
+      {
+        "datatype": "dwi",
+        "suffix": "dwi",
+        "criteria": {
+          "SeriesDescription": "*HARDI"
         }
       },
       {
@@ -125,7 +125,7 @@
         "datatype": "func",
         "suffix": "task-rest_bold",
         "criteria": {
-          "SeriesDescription": "*Resting*"
+          "SeriesDescription": "*esting*"
         }
       },
       {
@@ -139,29 +139,28 @@
         "datatype": "func",
         "suffix": "task-lang_bold",
         "criteria": {
-          "SeriesDescription": "*Language*"
+          "SeriesDescription": "*anguage*"
         }
       },
       {
         "datatype": "func",
-        "suffix": "bold",
+        "suffix": "task-movies_bold",
         "criteria": {
-          "SeriesDescription": "*[Ff]MRI*"
-        }
-      },
-  
-      {
-        "datatype": "fmap",
-        "suffix": "magnitude",
-        "criteria": {
-          "SeriesDescription": "*B0_MAP*"
+          "SeriesDescription": "*ovies*"
         }
       },
       {
-        "datatype": "other",
-        "suffix": "localizer",
+        "datatype": "func",
+        "suffix": "task-toys_bold",
         "criteria": {
-          "SeriesDescription": "*loc*"
+          "SeriesDescription": "*oys*"
+        }
+      },
+      {
+        "datatype": "func",
+        "suffix": "task-faces_bold",
+        "criteria": {
+          "SeriesDescription": "*aces*"
         }
       }
     ]

@@ -33,9 +33,9 @@ fMRI Toys 1
 fMRI Toys 2
 intermediate t-Map
 Mean_&_t-Maps
-StartFMRI
+StartFMRI - UNKOWN
 fMRI Faces 2
-3DB0_MAP
+3DB0_MAP - UNKOWN
 3D_Brain_View_FLAIR_SHC
 AX 3DT2
 AX Diffusion VOXEL 2
