@@ -16,7 +16,12 @@ while read -r bval_file; do
   word_count=$(wc -w < "$bval_file")
   if [ "$word_count" -ge "$bvalneeded" ]; then
     ses_dir=$(dirname "$bval_file" | sed -E 's|(.*?/ses-[^/]+).*|\1|')
-    ((session_counts["$ses_dir"]++))
+
+    # Check for anat directory and t1w file
+    anat_dir="$ses_dir/anat"
+    if [ -d "$anat_dir" ] && ls "$anat_dir"/*t1w*.nii.gz >/dev/null 2>&1; then
+      ((session_counts["$ses_dir"]++))
+    fi
   fi
 done < <(find "$data_root" -type f -name "*_dwi.bval")
 
