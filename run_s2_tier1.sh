@@ -23,7 +23,7 @@ echo "#!/bin/bash" | tee -a ${current_job}
 
 echo "#SBATCH --job-name=mapper-s2" | tee -a ${current_job}
 # using tier 1 cpu partition for the primary job 
-echo "#SBATCH --partition=tier1_cpu" | tee -a ${current_job}
+echo "#SBATCH --partition=free" | tee -a ${current_job}
 # request one node 
 echo "#SBATCH --nodes=1" | tee -a ${current_job}
 # number of tasks 
@@ -48,7 +48,7 @@ echo "conda activate /ceph/chpc/shared/shinjini_kundu_group/working/yash_test/ma
 echo "cd ${bids_dir}/derivatives/${sub}/${ses}" | tee -a ${current_job}
 
 #note we updated -n to number of cores we want for tasks: 8 (used to be 1) 
-echo "mappertrac -s2 -o ${bids_dir}/derivatives --multi_container /ceph/chpc/shared/shinjini_kundu_group/working/yash_test/mappertraccontainers --slurm -n 1 -p tier1_gpu --walltime 1:00:00 --bank shinjini_kundu ${bids_dir}/derivatives/${sub}" | tee -a ${current_job}
+echo "mappertrac -s2 -o ${bids_dir}/derivatives --multi_container /ceph/chpc/shared/shinjini_kundu_group/working/yash_test/mappertraccontainers --slurm -n 1 -p free_gpu --walltime 1:00:00 --bank shinjini_kundu ${bids_dir}/derivatives/${sub}" | tee -a ${current_job}
 
 echo "MaPPeRTrac step 2 job for ${sub} ${ses} is being submitted..."
 sbatch ${current_job}
