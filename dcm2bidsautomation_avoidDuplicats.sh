@@ -25,7 +25,17 @@ for folder in "$input_base"/*; do
     echo "Subject ID: $subj_id"
     echo "Session ID: $ses_id"
 
-    dcm2bids -d "$folder" -p "$subj_id" -s "$ses_id" -o "$output_base" --do_not_reorder_entities --force_dcm2bids -c "$config_file"
+    # Define the output folder for the current subject and session
+    current_output="$output_base/$subj_id/$ses_id"
+
+    # Check if the output folder already exists
+    if [ ! -d "$current_output" ]; then
+      # Run dcm2bids if the output folder doesn't exist
+      dcm2bids -d "$folder" -p "$subj_id" -s "$ses_id" -o "$output_base" --do_not_reorder_entities --force_dcm2bids -c "$config_file"
+    else
+      # Skip if the output folder exists
+      echo "Output folder '$current_output' already exists. Skipping dcm2bids for this subject/session."
+    fi
 
     ((count++))
     #if [ "$count" -ge "$max_count" ]; then
