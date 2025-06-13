@@ -57,7 +57,7 @@ echo "conda activate /ceph/chpc/shared/shinjini_kundu_group/working/yash_test/ma
 echo "cd ${bids_dir}/derivatives/${sub}/${ses}" | tee -a ${current_job}
 
 #note we updated -n to number of cores we want for tasks: 8 (used to be 1) 
-echo "mappertrac -s3 -o ${bids_dir}/derivatives --multi_container /ceph/chpc/shared/shinjini_kundu_group/working/yash_test/mappertraccontainers --slurm -n 8 -p tier1_cpu --walltime 8:00:00 --bank shinjini_kundu --edgelist tiny ${bids_dir}/derivatives/${sub}" | tee -a ${current_job}
+echo "mappertrac -s3 -o ${bids_dir}/derivatives --multi_container /ceph/chpc/shared/shinjini_kundu_group/working/yash_test/mappertraccontainers --slurm -n 8 -p tier1_cpu --walltime 8:00:00 --bank shinjini_kundu --edgelist all ${bids_dir}/derivatives/${sub}" | tee -a ${current_job}
 
 echo "MaPPeRTrac step 3 job for ${sub} ${ses} is being submitted..."
 sbatch ${current_job}

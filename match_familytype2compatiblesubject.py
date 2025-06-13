@@ -16,7 +16,7 @@ print(f"Total extracted IDs: {len(extracted_ids)}")
 
 # Step 2: Go through CSV files, starting with the prioritized one
 csv_dir = '/ceph/chpc/shared/shinjini_kundu_group/SFARI_UCSF/Simons_Searchlight_Phase1_16p11.2_Dataset_v11.0'
-output_filename = 'matched_family_types_from_all_csvs.csv'
+output_filename = 'family_type_matched_from_all_csvs.csv'
 results = []
 
 # Create a sorted list of files with priority given to 'svip_subjects_16p11.2.csv'

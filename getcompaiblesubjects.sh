@@ -29,6 +29,7 @@ done < <(find "$data_root" -type f -name "*_dwi.bval")
 
 count=0
 for ses_dir in "${!session_counts[@]}"; do
+#each session that has multiple compatible diffusion scans gets tagged multiple	
   if [ "${session_counts[$ses_dir]}" -gt 1 ]; then
     echo "${ses_dir} -MULTIPLE" >> "$output_file"
   else
