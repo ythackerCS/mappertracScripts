@@ -17,6 +17,8 @@ def run_probtrackx(params):
         edge_list = 'data/lists/list_edges_all.txt'
     elif "tiny" in params['edgelist']:
         edge_list = 'data/lists/list_edges_tiny.txt'
+    elif "phenotype" in params['edgelist']:
+        edge_list = 'data/lists/PH_DK_ALL.txt'
     else:
         edge_list = 'data/lists/list_edges_reduced.txt'
 
@@ -92,7 +94,7 @@ def process(params, edges, inputs=[]):
     EDI_allvols = join(sdir,"EDI","allvols")
     pbtk_dir = join(sdir,"EDI","PBTKresults")
     connectome_dir = join(sdir,"EDI","CNTMresults")
-    bedpostxResults = join(sdir,"bedpostx_b1000.bedpostX")
+    bedpostxResults = join(sdir,"bedpostx.bedpostX")
     merged = join(bedpostxResults,"merged")
     nodif_brain_mask = join(bedpostxResults,"nodif_brain_mask.nii.gz")
     allvoxelscortsubcort = join(sdir,"allvoxelscortsubcort.nii.gz")
@@ -111,13 +113,11 @@ def process(params, edges, inputs=[]):
         a_to_b_file = join(pbtk_dir,a_to_b_formatted)
         waypoints = join(tmp,"waypoint.txt")
         waytotal = join(tmp, "waytotal")
-        #below if statment modifed from Lanyas new code
         if exists(a_file) and exists(b_file): 
             write(stdout, "Both Freesurfer regions found: {} and {}".format(a_file, b_file))
         else:
             continue
             write(stdout, "Warning: Both Freesurfer regions must exist: {} and {}".format(a_file, b_file))
-
         smart_remove(a_to_b_file)
         smart_remove(tmp)
         smart_mkdir(tmp)
@@ -188,6 +188,8 @@ def combine(params, inputs=[]):
         edge_list = 'data/lists/list_edges_all.txt'
     elif "tiny" in params['edgelist']:
         edge_list = 'data/lists/list_edges_tiny.txt'
+    elif "phenotype" in params['edgelist']:
+        edge_list = 'data/lists/PH_DK_ALL.txt'
     else:
         edge_list = 'data/lists/list_edges_reduced.txt'
     
@@ -364,6 +366,8 @@ def conclude(params, inputs=[]):
         edge_list = 'data/lists/list_edges_all.txt'
     elif "tiny" in params['edgelist']:
         edge_list = 'data/lists/list_edges_tiny.txt'
+    elif "phenotype" in params['edgelist']:
+        edge_list = 'data/lists/PH_DK_ALL.txt'
     else:
         edge_list = 'data/lists/list_edges_reduced.txt'
     
@@ -378,7 +382,7 @@ def conclude(params, inputs=[]):
     smart_remove(edi_maps)
     smart_mkdir(edi_maps)    
 
-    # Collect number of probtrackx tracts per voxel (OLD METHOD TURNED OFF)
+    # Collect number of probtrackx tracts per voxel
     '''for edge in pbtx_edges:
         a, b = edge
         a_to_b_formatted = "{}_s2fato{}_s2fa.nii.gz".format(a,b)
@@ -410,8 +414,9 @@ def conclude(params, inputs=[]):
             continue
         consensus_edges.append(edge)
     
-    # Collect number of parcel-to-parcel edges per voxel (OLD METHOD TURNED OFF)
-    '''for edge in consensus_edges:
+    # Collect number of parcel-to-parcel edges per voxel
+    """write(stdout, "Using the sequential way to compute FAtractsumsTwoway:")
+    for edge in consensus_edges:
         a, b = edge
         consensus = join(consensus_dir, "{}_to_{}.nii.gz".format(a,b))
         if not exists(consensus):
@@ -420,8 +425,8 @@ def conclude(params, inputs=[]):
         if not exists(edge_total):
             copyfile(consensus, edge_total)
         else:
-            run("fslmaths {0} -add {1} {1}".format(consensus, edge_total), params)'''
-    
+            run("fslmaths {0} -add {1} {1}".format(consensus, edge_total), params)"""
+
     # New way of computing FAtractsumsTwoway
     write(stdout, "Using the new way to compute FAtractsumsTwoway:")
     edge_merge = join(edi_maps, "FAtractsumsTwoway_merge.nii.gz")
@@ -437,7 +442,7 @@ def conclude(params, inputs=[]):
     else:
         smart_copy(edge_total, join(dirname(sdir), 'EDI_' + basename(edge_total)))
 
-    update_permissions(sdir, params)
+    #update_permissions(sdir, params)
     write(join(sdir, 'S3_COMPLETE'))
     
     time_log = join(sdir, 'start_time_s3.txt')
