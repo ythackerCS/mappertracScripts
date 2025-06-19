@@ -1,6 +1,6 @@
 #!/bin/bash
 
-bids_dir=/ceph/chpc/shared/shinjini_kundu_group/working/yash_test/tbm_autism-BIDS
+bids_dir=/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS
 
 sub=$1
 ses=$2

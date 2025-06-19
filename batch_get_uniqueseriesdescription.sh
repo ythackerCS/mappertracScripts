@@ -5,11 +5,11 @@ module load dcm2niix/4.11.23
 
 # Activate conda environment
 source ~/miniconda/etc/profile.d/conda.sh
-conda activate /ceph/chpc/shared/shinjini_kundu_group/working/yash_test/mappertracenv
+conda activate /ceph/chpc/shared/shinjini_kundu_group/working/yash/mappertracenv
 
 output_file="unique_series_descriptions2.txt"
-helper_path="/ceph/chpc/shared/shinjini_kundu_group/working/yash_test/tbm_autism-BIDS/mappertracScripts/tmp_dcm2bids/helper/tbm-autism"
-tmp_dir="/ceph/chpc/shared/shinjini_kundu_group/working/yash_test/tbm_autism-BIDS/mappertracScripts/tmp_dcm2bids"
+helper_path="/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/mappertracScripts/tmp_dcm2bids/helper/tbm-autism"
+tmp_dir="/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/mappertracScripts/tmp_dcm2bids"
 
 touch $output_file  # Ensure the file exists
 
@@ -22,7 +22,7 @@ for folder in 14708.x10_60_FCAP1 14741.x23_60_FCAP1 14770.x7_20_SCAP1 14814.x1_6
               14723.x17_60_FCAP1 14755.x15_60_FCAP1 14786.x23_60_FCAP1 14820.x12_50_FCAP1; do
 
   echo "Running dcm2bids_helper for $folder"
-  dcm2bids_helper -n tbm-autism -d /ceph/chpc/shared/shinjini_kundu_group/working/yash_test/compatiblesubjects/$folder
+  dcm2bids_helper -n tbm-autism -d /ceph/chpc/shared/shinjini_kundu_group/working/yash/compatiblesubjects/$folder
 
   echo "Running getseries.py"
   python getseries.py "$helper_path" > temp_series_output.txt

@@ -2,7 +2,7 @@
 
 output_file="compatible_bval_subjects.txt"
 bvalneeded=30
-data_root="/ceph/chpc/shared/shinjini_kundu_group/working/yash_test/tbm_autism-BIDS/sourcedata2"
+data_root="/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/sourcedata2"
 
 declare -A session_counts=()
 declare -A session_bvalfiles=()

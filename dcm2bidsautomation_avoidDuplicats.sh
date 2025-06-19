@@ -3,9 +3,9 @@
 # Load required module
 module load dcm2niix/4.11.23
 
-input_base="/ceph/chpc/shared/shinjini_kundu_group/working/yash_test/unzippedsubjects"
-output_base="/ceph/chpc/shared/shinjini_kundu_group/working/yash_test/tbm_autism-BIDS/sourcedata2"
-config_file="/ceph/chpc/shared/shinjini_kundu_group/working/yash_test/tbm_autism-BIDS/mappertracScripts/dcm2bids_largesample.json"
+input_base="/ceph/chpc/shared/shinjini_kundu_group/working/yash/unzippedsubjects"
+output_base="/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/sourcedata2"
+config_file="/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/mappertracScripts/dcm2bids_largesample.json"
 
 count=0
 #max_count=20
