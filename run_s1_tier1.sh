@@ -7,16 +7,23 @@ ses=$2
 
 mkdir -p ${bids_dir}/misc/jobs
 
-mkdir -p ${bids_dir}/derivatives/${sub}/${ses}/work_dir
+mkdir -p ${bids_dir}/derivatives/${sub}/${ses}/mappertrac/work_dir/
 
 #copy only necessrary files t1, dwi, and bvec and bval (not whole folder)
-cp -p ${bids_dir}/sourcedata/${sub}/${ses}/anat/*_t1w.nii.gz ${bids_dir}/derivatives/${sub}/${ses}/work_dir/
+#NOTE: The naming convension has changed to follow the naming convension used for preprocessing 
 
-cp -p ${bids_dir}/sourcedata/${sub}/${ses}/dwi/${sub}_${ses}_dwi.nii.gz ${bids_dir}/derivatives/${sub}/${ses}/work_dir/
+cp -p ${bids_dir}/sourcedata/${sub}/${ses}/anat/*_t1w.nii.gz ${bids_dir}/derivatives/${sub}/${ses}/mappertrac/work_dir/
 
-cp -p ${bids_dir}/sourcedata/${sub}/${ses}/dwi/${sub}_${ses}_dwi.bvec ${bids_dir}/derivatives/${sub}/${ses}/work_dir/
+#NOTE we have changed the file tag to preprocessed to indicate complettion of the entire preprocessing pipeline 
+cp -p ${bids_dir}/derivatives/${sub}/${ses}/preproc/${sub}_${ses}_denoised_rmgibbs_eddy.nii.gz ${bids_dir}/derivatives/${sub}/${ses}/mappertrac/work_dir/${sub}_${ses}_preprocessed.nii.gz
 
-cp -p ${bids_dir}/sourcedata/${sub}/${ses}/dwi/${sub}_${ses}_dwi.bval ${bids_dir}/derivatives/${sub}/${ses}/work_dir/
+#NOTE file name restored to match 'defaults' in mappertrac 
+cp -p ${bids_dir}/derivatives/${sub}/${ses}/preproc/${sub}_${ses}_denoised_rmgibbs_eddy.eddy_rotated_bvecs ${bids_dir}/derivatives/${sub}/${ses}/mappertrac/work_dir/${sub}_${ses}_dwi.bvec
+
+#Bellow line is unchanged 
+cp -p ${bids_dir}/sourcedata/${sub}/${ses}/dwi/${sub}_${ses}_dwi.bval ${bids_dir}/derivatives/${sub}/${ses}/mappertrac/work_dir/
+
+cp -p ${bids_dir}/derivatives/${sub}/${ses}/preproc/${sub}_${ses}_denoised_rmgibbs_eddy_mask.nii.gz ${bids_dir}/derivatives/${sub}/${ses}/mappertrac/work_dir/${sub}_${ses}_preprocessed_mask.nii.gz 
 
 current_job=${bids_dir}/misc/jobs/s1_${sub}_${ses}.sh
 
@@ -52,12 +59,12 @@ echo "#SBATCH -o ${bids_dir}/misc/output/${sub}_${ses}_s1_slurm-%j.out" | tee -a
 
 #activate enviornment 
 echo "source /export/anaconda/anaconda3/anaconda3-2023.03/etc/profile.d/conda.sh" | tee -a ${current_job}
-echo "conda activate /ceph/chpc/shared/shinjini_kundu_group/working/yash_test/mappertracenv" | tee -a ${current_job}
+echo "conda activate /ceph/chpc/shared/shinjini_kundu_group/working/yash/mappertracenv" | tee -a ${current_job}
 
-echo "cd ${bids_dir}/derivatives/${sub}/${ses}" | tee -a ${current_job}
+echo "cd ${bids_dir}/derivatives/${sub}/${ses}/mappertrac" | tee -a ${current_job}
 
 #note we updated -n to number of cores we want for tasks: 8 (used to be 1) 
-echo "mappertrac -s1 -o ${bids_dir}/derivatives --multi_container /ceph/chpc/shared/shinjini_kundu_group/working/yash_test/mappertraccontainers --slurm -n 8 -p tier1_cpu --walltime 12:00:00 --bank shinjini_kundu --edgelist tiny ${bids_dir}/derivatives/${sub}" | tee -a ${current_job}
+echo "mappertrac -s1 -o ${bids_dir}/derivatives --multi_container /ceph/chpc/shared/shinjini_kundu_group/working/yash/mappertraccontainers --slurm -n 8 -p tier1_cpu --walltime 12:00:00 --bank shinjini_kundu --edgelist tiny ${bids_dir}/derivatives/${sub}" | tee -a ${current_job}
 
 echo "MaPPeRTrac step 1 job for ${sub} ${ses} is being submitted..."
 sbatch ${current_job}

@@ -51,7 +51,11 @@ Arguments:
     write(stdout, f'The ID is: {ID}')
     smart_mkdir(sdir)
 
-    if isfile(join(sdir, f'{ID}_dwi.nii.gz')):
+    #NOTE if statement file check is modified to check for new tag 'preprocessed' which indicates file has been processed with custom preprocessing pipeline 
+
+    if isfile(join(sdir, f'{ID}_preprocessed.nii.gz')):
+        input_dwi = join(sdir, f'{ID}_preprocessed.nii.gz')
+    elif isfile(join(sdir,  f'{ID}_dwi.nii.gz')):
         input_dwi = join(sdir, f'{ID}_dwi.nii.gz')
     if isfile(join(sdir, f'{ID}_dwi.bval')):
         input_bval = join(sdir, f'{ID}_dwi.bval')
@@ -59,7 +63,7 @@ Arguments:
         input_bvec = join(sdir, f'{ID}_dwi.bvec')
     if isfile(join(sdir, f'{ID}_t1w.nii.gz')):
         input_T1 = join(sdir, f'{ID}_t1w.nii.gz')
-
+   
     write(stdout, f'The input_dwi is: {input_dwi}')
     write(stdout, f'The input_bval is: {input_bval}')
     write(stdout, f'The input_bvec is: {input_bvec}')
@@ -181,10 +185,13 @@ Arguments:
         smart_copy(dwi_reorg, data_topup)
 
     # Registration based motion correction and eddy
-    eddy_prefix = join(sdir, 'data_eddy')
+    #NOTE this was modified to change the tag that matches new 'preprocessed' tag being used 
+    #NOTE this 'preprocessed' tag now also applies if you use s1 preprocessing step to maintain consistancy 
+    eddy_prefix = join(sdir, f'{ID}_preprocessed')
     data_eddy = f'{eddy_prefix}.nii.gz'
     bet = join(sdir, 'data_bet.nii.gz')
-    bet_mask = join(sdir, 'data_bet_mask.nii.gz')
+    #NOTE name below was also modified to fit new preprocessing pipeline 
+    bet_mask = join(sdir, f'{ID}_preprocessed_mask.nii.gz')
 
     if exists(data_eddy):
         write(stdout, "Eddy output image was found. Skipping eddy step. ")

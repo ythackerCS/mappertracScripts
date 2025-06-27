@@ -72,13 +72,15 @@ Arguments:
     output_dir = params['output_dir']
     pbtk_dir = join(sdir,"EDI","PBTKresults")
     connectome_dir = join(sdir,"EDI","CNTMresults")
-    derivatives_dir_tmp = join(output_dir, 'derivatives', "tmp")
+    #Below line was commented out, and to be removed - yt 
+    #derivatives_dir_tmp = join(output_dir, 'derivatives', "tmp")
     sdir_tmp = join(sdir, "tmp")
     smart_mkdir(pbtk_dir)
     smart_mkdir(connectome_dir)
     smart_mkdir(sdir_tmp)
     time.sleep(random.randrange(0, 10)) # random sleep to avoid parallel collision
-    smart_mkdir(derivatives_dir_tmp)
+    #Below line was commented out, and to be removed - yt
+    #smart_mkdir(derivatives_dir_tmp)
 
 @python_app(executors=['worker'])
 def process(params, edges, inputs=[]):
@@ -87,7 +89,8 @@ def process(params, edges, inputs=[]):
     stdout = params['stdout']
     output_dir = params['output_dir']
     trac_sample_count = params['trac_sample_count']
-    derivatives_dir_tmp = join(output_dir, 'derivatives', "tmp")
+    #Below line was commented out, and to be removed - yt
+    #derivatives_dir_tmp = join(output_dir, 'derivatives', "tmp")
     sdir_tmp = join(sdir, "tmp")
     EDI_allvols = join(sdir,"EDI","allvols")
     pbtk_dir = join(sdir,"EDI","PBTKresults")
