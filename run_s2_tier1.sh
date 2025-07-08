@@ -9,9 +9,10 @@ ses=$2
 
 #mkdir -p ${bids_dir}/derivatives/${sub}/${ses}/work_dir
 
-if [[ -e ${bids_dir}/derivatives/${sub}/${ses}/work_dir/vol0000.nii.gz ]]; then 
+#YT-UPDATED PATHS BELOW TO INCLUDE mapptracfolder now
+if [[ -e ${bids_dir}/derivatives/${sub}/${ses}/mappertrac/work_dir/vol0000.nii.gz ]]; then 
 	echo "S1_complete removing excess files" 
-	rm -f ${bids_dir}/derivatives/${sub}/${ses}/work_dir/vol0*.nii.gz
+	rm -f ${bids_dir}/derivatives/${sub}/${ses}/mappertrac/work_dir/vol0*.nii.gz
 fi 
 
 current_job=${bids_dir}/misc/jobs/s2_${sub}_${ses}.sh
@@ -50,7 +51,8 @@ echo "#SBATCH -o ${bids_dir}/misc/output/${sub}_${ses}_s2_slurm-%j.out" | tee -a
 echo "source /export/anaconda/anaconda3/anaconda3-2023.03/etc/profile.d/conda.sh" | tee -a ${current_job}
 echo "conda activate /ceph/chpc/shared/shinjini_kundu_group/working/yash/mappertracenv" | tee -a ${current_job}
 
-echo "cd ${bids_dir}/derivatives/${sub}/${ses}" | tee -a ${current_job}
+#YT-UPDATED PATHS BELOW TO INCLUDE mapptracfolder now
+echo "cd ${bids_dir}/derivatives/${sub}/${ses}/mappertrac" | tee -a ${current_job}
 
 #note we updated -n to number of cores we want for tasks: 8 (used to be 1) 
 echo "mappertrac -s2 -o ${bids_dir}/derivatives --multi_container /ceph/chpc/shared/shinjini_kundu_group/working/yash/mappertraccontainers --slurm -n 1 -p tier1_gpu --walltime 1:00:00 --bank shinjini_kundu ${bids_dir}/derivatives/${sub}" | tee -a ${current_job}

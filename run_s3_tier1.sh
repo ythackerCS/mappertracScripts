@@ -42,7 +42,7 @@ echo "#SBATCH --cpus-per-task=1" | tee -a ${current_job}
 # using shinjini kundu account 
 echo "#SBATCH --account=shinjini_kundu" | tee -a ${current_job}
 #request 8 hours of processing time 
-echo "#SBATCH --time=8:00:00" | tee -a ${current_job}
+echo "#SBATCH --time=15:00:00" | tee -a ${current_job}
 # 8 gbs of memeory 
 echo "#SBATCH --mem=10gb" | tee -a ${current_job}
 
@@ -54,10 +54,11 @@ echo "#SBATCH -o ${bids_dir}/misc/output/${sub}_${ses}_s3_slurm-%j.out" | tee -a
 echo "source /export/anaconda/anaconda3/anaconda3-2023.03/etc/profile.d/conda.sh" | tee -a ${current_job}
 echo "conda activate /ceph/chpc/shared/shinjini_kundu_group/working/yash/mappertracenv" | tee -a ${current_job}
 
-echo "cd ${bids_dir}/derivatives/${sub}/${ses}" | tee -a ${current_job}
+#YT-Changed path and added mappertrac
+echo "cd ${bids_dir}/derivatives/${sub}/${ses}/mappertrac" | tee -a ${current_job}
 
 #note we updated -n to number of cores we want for tasks: 8 (used to be 1) 
-echo "mappertrac -s3 -o ${bids_dir}/derivatives --multi_container /ceph/chpc/shared/shinjini_kundu_group/working/yash/mappertraccontainers --slurm -n 8 -p tier1_cpu --walltime 8:00:00 --bank shinjini_kundu --edgelist all ${bids_dir}/derivatives/${sub}" | tee -a ${current_job}
+echo "mappertrac -s3 -o ${bids_dir}/derivatives --multi_container /ceph/chpc/shared/shinjini_kundu_group/working/yash/mappertraccontainers --slurm -n 8 -p tier1_cpu --walltime 15:00:00 --bank shinjini_kundu --edgelist all ${bids_dir}/derivatives/${sub}" | tee -a ${current_job}
 
 echo "MaPPeRTrac step 3 job for ${sub} ${ses} is being submitted..."
 sbatch ${current_job}
