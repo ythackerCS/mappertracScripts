@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#Example run: ./run_all_submissions.sh compatible_bval_subjects.txt --base-path /ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS --all --test
+
+
 # Usage message
 usage() {
     echo "Usage: $0 path_to_input_list.txt --base-path /path/to/BIDS [--all | --denoise --gibbs --eddy --eddyqc --t1qc] [--test]"
