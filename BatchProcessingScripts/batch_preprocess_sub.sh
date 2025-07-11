@@ -8,25 +8,19 @@ scripts_path="/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BID
 
 # Usage message
 usage() {
-    echo "Usage: $0 path_to_input_list.txt --base-path /path/to/BIDS [--all | --denoise --gibbs --eddy --eddyqc --t1qc] [--test]"
+    echo "Usage: $0 [path_to_input_list.txt | --subject sub-XXX --session ses-XXX] --base-path /path/to/BIDS [--all | --denoise --gibbs --eddy --eddyqc --t1qc] [--test]"
     echo
-    echo "Example:"
+    echo "Examples:"
     echo "  $0 compatible_bval_subjects.txt --base-path /my/path --all"
-    echo "  $0 compatible_bval_subjects.txt --base-path /my/path --denoise --test"
+    echo "  $0 --subject sub-01 --session ses-01 --base-path /my/path --denoise --test"
     exit 1
 }
 
-# Check minimum argument count
-if [ $# -lt 3 ]; then
-    usage
-fi
-
-# Input file
-input_file="$1"
-shift
-
 # Default values
+input_file=""
 base_path=""
+subject=""
+session=""
 run_denoise=false
 run_gibbs=false
 run_eddy=false
@@ -40,12 +34,27 @@ if [[ ! -d "$scripts_path" ]]; then
     exit 1
 fi
 
+# Parse positional argument or options
+# If first arg doesn't start with "--", treat it as input_file
+if [[ $# -gt 0 && "$1" != --* ]]; then
+    input_file="$1"
+    shift
+fi
+
 # Parse options
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --base-path)
             shift
             base_path="$1"
+            ;;
+        --subject)
+            shift
+            subject="$1"
+            ;;
+        --session)
+            shift
+            session="$1"
             ;;
         --all)
             run_denoise=true
@@ -65,24 +74,28 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-# Validate base_path
+# Validate inputs
 if [[ -z "$base_path" ]]; then
     echo "Error: --base-path is required"
+    usage
+fi
+
+if [[ -n "$input_file" && ( -n "$subject" || -n "$session" ) ]]; then
+    echo "Error: Specify either an input file or --subject/--session, not both."
+    usage
+fi
+
+if [[ -z "$input_file" && ( -z "$subject" || -z "$session" ) ]]; then
+    echo "Error: Either provide input file or both --subject and --session."
     usage
 fi
 
 # Normalize scripts_path (remove trailing slash if any)
 scripts_path="${scripts_path%/}"
 
-# Process each line of the input file
-while IFS= read -r line; do
-    sub=$(echo "$line" | grep -o 'sub-[^/]*')
-    ses=$(echo "$line" | grep -o 'ses-[^ ]*')
-
-    if [[ -z "$sub" || -z "$ses" ]]; then
-        echo "Skipping invalid line: $line"
-        continue
-    fi
+process_subject_session() {
+    local sub=$1
+    local ses=$2
 
     echo "Processing $sub $ses"
 
@@ -113,11 +126,30 @@ while IFS= read -r line; do
 
     echo "Finished $sub $ses"
     echo "-----------------------------"
+}
 
-    if $test_mode; then
-        echo "Test mode enabled: exiting after first subject."
-        break
-    fi
+# Main logic
 
-done < "$input_file"
+if [[ -n "$input_file" ]]; then
+    # Process list from file
+    while IFS= read -r line; do
+        sub=$(echo "$line" | grep -o 'sub-[^/ ]*')
+        ses=$(echo "$line" | grep -o 'ses-[^/ ]*')
 
+        if [[ -z "$sub" || -z "$ses" ]]; then
+            echo "Skipping invalid line: $line"
+            continue
+        fi
+
+        process_subject_session "$sub" "$ses"
+
+        if $test_mode; then
+            echo "Test mode enabled: exiting after first subject."
+            break
+        fi
+    done < "$input_file"
+
+else
+    # Single subject/session provided
+    process_subject_session "$subject" "$session"
+fi
