@@ -1,0 +1,4 @@
+subject_id,session_id,qc_file,subject,general white matter,general grey matter,general csf,cerebellum,brainstem,thalamus,putamen+pallidum,hippocampus+amygdala
+sub-14735x1640,ses-SCAP1,qc_run-01.csv,sub-14735x1640_ses-SCAP1_run-01_t1w,0.8501,0.7478,0.8326,0.8796,0.8642,0.8736,0.92,0.8918
+sub-14735x1640,ses-SCAP1,qc_run-03.csv,sub-14735x1640_ses-SCAP1_run-03_t1w,0.8503,0.767,0.839,0.8963,0.8752,0.8761,0.9194,0.8867
+sub-14735x1640,ses-SCAP1,qc_run-02.csv,sub-14735x1640_ses-SCAP1_run-02_t1w,0.8454,0.7719,0.8421,0.8979,0.8818,0.8636,0.9199,0.8924
