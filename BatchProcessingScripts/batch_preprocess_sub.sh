@@ -124,7 +124,7 @@ process_subject_session() {
 
     if $run_t1qc; then
         local t1_qc_path="$dest_dir_root/$sub/$ses/t1_qc"
-        if [[ -d "$t1_qc_path" ]]; then
+	if compgen -G $t1_qc_path/qc*.csv > /dev/null; then
             echo "T1 QC already exists at $t1_qc_path — skipping."
         else
             echo "Running T1 QC..."
