@@ -3,19 +3,12 @@
 # Modify this variable as needed to point to your submit scripts location:
 scripts_path="/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/code/Preprocessing"
 
-# Destination derivatives directory root (modify if needed)
+# Destination derivatives directory root
 dest_dir_root="/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/derivatives"
-
-# Example run:
-# ./run_all_submissions.sh compatible_bval_subjects.txt --base-path /ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS --all --test
 
 # Usage message
 usage() {
-    echo "Usage: $0 [path_to_input_list.txt | --subject sub-XXX --session ses-XXX] --base-path /path/to/BIDS [--all | --denoise --gibbs --eddy --eddyqc --t1qc] [--test]"
-    echo
-    echo "Examples:"
-    echo "  $0 compatible_bval_subjects.txt --base-path /my/path --all"
-    echo "  $0 --subject sub-01 --session ses-01 --base-path /my/path --denoise --test"
+    echo "Usage: $0 [path_to_input.csv | --subject sub-XXX --session ses-XXX] --base-path /path/to/BIDS [--all | --denoise --gibbs --eddy --eddyqc --t1qc] [--test]"
     exit 1
 }
 
@@ -37,8 +30,7 @@ if [[ ! -d "$scripts_path" ]]; then
     exit 1
 fi
 
-# Parse positional argument or options
-# If first arg doesn't start with "--", treat it as input_file
+# Check if first arg is a CSV file
 if [[ $# -gt 0 && "$1" != --* ]]; then
     input_file="$1"
     shift
@@ -47,18 +39,9 @@ fi
 # Parse options
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --base-path)
-            shift
-            base_path="$1"
-            ;;
-        --subject)
-            shift
-            subject="$1"
-            ;;
-        --session)
-            shift
-            session="$1"
-            ;;
+        --base-path) shift; base_path="$1" ;;
+        --subject) shift; subject="$1" ;;
+        --session) shift; session="$1" ;;
         --all)
             run_denoise=true
             run_gibbs=true
@@ -72,7 +55,7 @@ while [[ $# -gt 0 ]]; do
         --eddyqc)  run_eddyqc=true ;;
         --t1qc)    run_t1qc=true ;;
         --test)    test_mode=true ;;
-        *) echo "Unknown option: $1" ; usage ;;
+        *) echo "Unknown option: $1"; usage ;;
     esac
     shift
 done
@@ -84,16 +67,16 @@ if [[ -z "$base_path" ]]; then
 fi
 
 if [[ -n "$input_file" && ( -n "$subject" || -n "$session" ) ]]; then
-    echo "Error: Specify either an input file or --subject/--session, not both."
+    echo "Error: Specify either a CSV input file or --subject/--session, not both."
     usage
 fi
 
 if [[ -z "$input_file" && ( -z "$subject" || -z "$session" ) ]]; then
-    echo "Error: Either provide input file or both --subject and --session."
+    echo "Error: Either provide a CSV file or both --subject and --session."
     usage
 fi
 
-# Normalize scripts_path (remove trailing slash if any)
+# Remove trailing slash
 scripts_path="${scripts_path%/}"
 
 process_subject_session() {
@@ -103,31 +86,22 @@ process_subject_session() {
     echo "Processing $sub $ses"
 
     if $run_denoise; then
-        echo "Running denoise..."
         "$scripts_path"/submit_01_bids_denoise.sh "$base_path" "$sub" "$ses"
     fi
-
     if $run_gibbs; then
-        echo "Running gibbs ringing removal..."
         "$scripts_path"/submit_02_bids_gibbsringing.sh "$base_path" "$sub" "$ses"
     fi
-
     if $run_eddy; then
-        echo "Running eddy..."
         "$scripts_path"/submit_03_bids_eddy.sh "$base_path" "$sub" "$ses"
     fi
-
     if $run_eddyqc; then
-        echo "Running eddy QC..."
         "$scripts_path"/submit_04_bids_eddyqc.sh "$base_path" "$sub" "$ses"
     fi
-
     if $run_t1qc; then
         local t1_qc_path="$dest_dir_root/$sub/$ses/t1_qc"
-	if compgen -G $t1_qc_path/qc*.csv > /dev/null; then
+        if compgen -G "$t1_qc_path"/qc*.csv > /dev/null; then
             echo "T1 QC already exists at $t1_qc_path — skipping."
         else
-            echo "Running T1 QC..."
             "$scripts_path"/submit_05_T1_qc.sh "$base_path" "$sub" "$ses"
         fi
     fi
@@ -137,28 +111,22 @@ process_subject_session() {
 }
 
 # Main logic
-
 if [[ -n "$input_file" ]]; then
-    # Process list from file
-    while IFS= read -r line; do
-        sub=$(echo "$line" | grep -o 'sub-[^/ ]*')
-        ses=$(echo "$line" | grep -o 'ses-[^/ ]*')
-
+    # Read CSV, skipping header
+    tail -n +2 "$input_file" | while IFS=',' read -r sub ses; do
         if [[ -z "$sub" || -z "$ses" ]]; then
-            echo "Skipping invalid line: $line"
+            echo "Skipping invalid line: $sub,$ses"
             continue
         fi
 
         process_subject_session "$sub" "$ses"
 
         if $test_mode; then
-            echo "Test mode enabled: exiting after first subject."
+            echo "Test mode: stopping after first subject."
             break
         fi
-    done < "$input_file"
-
+    done
 else
-    # Single subject/session provided
     process_subject_session "$subject" "$session"
 fi
 
