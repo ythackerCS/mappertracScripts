@@ -3,6 +3,9 @@
 # Modify this variable as needed to point to your submit scripts location:
 scripts_path="/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/code/Preprocessing"
 
+# Destination derivatives directory root (modify if needed)
+dest_dir_root="/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/derivatives"
+
 # Example run:
 # ./run_all_submissions.sh compatible_bval_subjects.txt --base-path /ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS --all --test
 
@@ -120,8 +123,13 @@ process_subject_session() {
     fi
 
     if $run_t1qc; then
-        echo "Running T1 QC..."
-        "$scripts_path"/submit_05_T1_qc.sh "$base_path" "$sub" "$ses"
+        local t1_qc_path="$dest_dir_root/$sub/$ses/t1_qc"
+        if [[ -d "$t1_qc_path" ]]; then
+            echo "T1 QC already exists at $t1_qc_path — skipping."
+        else
+            echo "Running T1 QC..."
+            "$scripts_path"/submit_05_T1_qc.sh "$base_path" "$sub" "$ses"
+        fi
     fi
 
     echo "Finished $sub $ses"
@@ -153,3 +161,4 @@ else
     # Single subject/session provided
     process_subject_session "$subject" "$session"
 fi
+
