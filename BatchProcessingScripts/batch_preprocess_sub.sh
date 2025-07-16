@@ -8,7 +8,7 @@ dest_dir_root="/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BI
 
 # Usage message
 usage() {
-    echo "Usage: $0 [path_to_input.csv | --subject sub-XXX --session ses-XXX] --base-path /path/to/BIDS [--all | --denoise --gibbs --eddy --eddyqc --t1qc] [--test]"
+    echo "Usage: $0 [path_to_input.csv | --subject sub-XXX --session ses-XXX [--run run-YYY]] --base-path /path/to/BIDS [--all | --denoise --gibbs --eddy --eddyqc --t1qc] [--test]"
     exit 1
 }
 
@@ -17,6 +17,7 @@ input_file=""
 base_path=""
 subject=""
 session=""
+run=""
 run_denoise=false
 run_gibbs=false
 run_eddy=false
@@ -42,6 +43,7 @@ while [[ $# -gt 0 ]]; do
         --base-path) shift; base_path="$1" ;;
         --subject) shift; subject="$1" ;;
         --session) shift; session="$1" ;;
+        --run) shift; run="$1" ;;
         --all)
             run_denoise=true
             run_gibbs=true
@@ -129,5 +131,5 @@ if [[ -n "$input_file" ]]; then
         fi
     done
 else
-    process_subject_session "$subject" "$session"
+    process_subject_session "$subject" "$session" "$run"
 fi
