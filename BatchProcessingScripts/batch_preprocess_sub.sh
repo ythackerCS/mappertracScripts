@@ -79,23 +79,25 @@ fi
 # Remove trailing slash
 scripts_path="${scripts_path%/}"
 
+# Function to process one subject/session/run combo
 process_subject_session() {
-    local sub=$1
-    local ses=$2
+    local sub="$1"
+    local ses="$2"
+    local run="$3"
 
-    echo "Processing $sub $ses"
+    echo "Processing $sub $ses ${run:+$run}"
 
     if $run_denoise; then
-        "$scripts_path"/submit_01_bids_denoise.sh "$base_path" "$sub" "$ses"
+        "$scripts_path"/submit_01_bids_denoise.sh "$base_path" "$sub" "$ses" "$run"
     fi
     if $run_gibbs; then
-        "$scripts_path"/submit_02_bids_gibbsringing.sh "$base_path" "$sub" "$ses"
+        "$scripts_path"/submit_02_bids_gibbsringing.sh "$base_path" "$sub" "$ses" "$run"
     fi
     if $run_eddy; then
-        "$scripts_path"/submit_03_bids_eddy.sh "$base_path" "$sub" "$ses"
+        "$scripts_path"/submit_03_bids_eddy.sh "$base_path" "$sub" "$ses" "$run"
     fi
     if $run_eddyqc; then
-        "$scripts_path"/submit_04_bids_eddyqc.sh "$base_path" "$sub" "$ses"
+        "$scripts_path"/submit_04_bids_eddyqc.sh "$base_path" "$sub" "$ses" "$run"
     fi
     if $run_t1qc; then
         local t1_qc_path="$dest_dir_root/$sub/$ses/t1_qc"
@@ -106,20 +108,20 @@ process_subject_session() {
         fi
     fi
 
-    echo "Finished $sub $ses"
+    echo "Finished $sub $ses ${run:+$run}"
     echo "-----------------------------"
 }
 
 # Main logic
 if [[ -n "$input_file" ]]; then
     # Read CSV, skipping header
-    tail -n +2 "$input_file" | while IFS=',' read -r sub ses; do
+    tail -n +2 "$input_file" | while IFS=',' read -r sub ses run; do
         if [[ -z "$sub" || -z "$ses" ]]; then
-            echo "Skipping invalid line: $sub,$ses"
+            echo "Skipping invalid line: $sub,$ses,$run"
             continue
         fi
 
-        process_subject_session "$sub" "$ses"
+        process_subject_session "$sub" "$ses" "$run"
 
         if $test_mode; then
             echo "Test mode: stopping after first subject."
@@ -129,4 +131,3 @@ if [[ -n "$input_file" ]]; then
 else
     process_subject_session "$subject" "$session"
 fi
-
