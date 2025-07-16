@@ -10,19 +10,16 @@ if [[ ! -f "$input_file" ]]; then
 fi
 
 # Write header
-echo "sub,session" > "$output_file"
+echo "sub,session,run" > "$output_file"
 
 # Read and process each line
 while IFS= read -r line; do
-    # Extract only the part before the first space
-    clean_path=$(echo "$line" | cut -d' ' -f1)
-
-    # Extract subject and session from the cleaned path
-    sub=$(echo "$clean_path" | grep -o 'sub-[^/]*')
-    ses=$(echo "$clean_path" | grep -o 'ses-[^/]*')
+    sub=$(echo "$line" | grep -o 'sub-[^/_ \-]*' | head -n 1)
+    ses=$(echo "$line" | grep -o 'ses-[^/_ \-]*' | head -n 1)
+    run=$(echo "$line" | grep -o 'run-[0-9][0-9]*' | head -n 1)
 
     if [[ -n "$sub" && -n "$ses" ]]; then
-        echo "$sub,$ses" >> "$output_file"
+        echo "$sub,$ses,$run" >> "$output_file"
     else
         echo "Warning: Skipping invalid line -> $line"
     fi
