@@ -148,10 +148,11 @@ def main():
                     brain_path = os.path.join(deriv_dir, brain_file)
                     mask_path = os.path.join(deriv_dir, mask_file)
 
-                    output_exists = os.path.isfile(brain_path) and os.path.isfile(mask_path)
+                    output_missing = not (os.path.isfile(brain_path) and os.path.isfile(mask_path))
 
                     row['eddy_log_has_errors'] = log_has_errors
-                    row['eddy_failed'] = log_has_errors or not output_exists
+                    # Eddy only fails if both: outputs are missing AND log has error
+                    row['eddy_failed'] = output_missing and log_has_errors
                 else:
                     row['eddy_failed'] = False
                     row['eddy_log_has_errors'] = False
