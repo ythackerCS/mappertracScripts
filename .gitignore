@@ -2,3 +2,5 @@ tmp_dcm2bids/
 temp_series_output.txt
 new_series.txt
 batch_series_process_output.log
+*.json
+.DS_Store
