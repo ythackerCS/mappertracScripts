@@ -9,7 +9,7 @@ import json
 output_file = "pipeline_progress.csv"
 bval_needed = 30
 data_root_default = "/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/sourcedata"
-log_dir_default = "/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/misc/logs"
+log_dir_default = "/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/misc/logs/job-03_eddyqc"
 derivatives_dir_default = "/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/derivatives"
 
 def parse_args():
@@ -386,12 +386,13 @@ def update_eddy_status(args):
 
     return rows
 
-import os
-import sys
-import csv
-import json
 
 def update_eddyqc_status(args):
+    import os
+    import sys
+    import csv
+    import json
+
     if not os.path.exists(args.output):
         print(f"Error: CSV file '{args.output}' not found. Run with --getsubjects first.")
         sys.exit(1)
@@ -437,9 +438,24 @@ def update_eddyqc_status(args):
 
         if run:
             log_file = os.path.join(args.log_dir, f"{subject}_{session}_{run}_job-04_eddyqc.out")
+            qc_folder = os.path.join(
+                args.derivatives_dir,
+                subject,
+                session,
+                'preproc',
+                f"{subject}_{session}_{run}_denoised_rmgibbs_eddy.qc"
+            )
         else:
             log_file = os.path.join(args.log_dir, f"{subject}_{session}_job-04_eddyqc_norun.out")
+            qc_folder = os.path.join(
+                args.derivatives_dir,
+                subject,
+                session,
+                'preproc',
+                f"{subject}_{session}_denoised_rmgibbs_eddy.qc"
+            )
 
+        # Check if log file exists and update Eddyqc_Log accordingly
         if os.path.exists(log_file):
             with open(log_file, 'r') as lf:
                 content = lf.read().lower()
@@ -451,52 +467,36 @@ def update_eddyqc_status(args):
                 row['Eddyqc_Log'] = "FAIL"
                 row['Eddyqc_Status'] = "FALSE"
             else:
-                # Log exists but no critical errors → set Eddyqc_Log TRUE
                 row['Eddyqc_Log'] = "TRUE"
-
-                if run:
-                    qc_folder = os.path.join(
-                        args.derivatives_dir,
-                        subject,
-                        session,
-                        'preproc',
-                        f"{subject}_{session}_{run}_denoised_rmgibbs_eddy.qc"
-                    )
-                else:
-                    qc_folder = os.path.join(
-                        args.derivatives_dir,
-                        subject,
-                        session,
-                        'preproc',
-                        f"{subject}_{session}_denoised_rmgibbs_eddy.qc"
-                    )
-
-                qc_pdf = os.path.join(qc_folder, "qc.pdf")
-                qc_json = os.path.join(qc_folder, "qc.json")
-
-                if os.path.exists(qc_pdf) and os.path.exists(qc_json):
-                    row['Eddyqc_Status'] = "TRUE"
-                    try:
-                        with open(qc_json, 'r') as jq:
-                            qc_data = json.load(jq)
-
-                        for key in keys_to_add:
-                            if key in qc_data:
-                                value = qc_data[key]
-                                if isinstance(value, (list, dict)):
-                                    value = json.dumps(value)
-                                else:
-                                    value = str(value)
-                                row[key] = value
-
-                    except Exception as e:
-                        print(f"Warning: Failed to read or parse qc.json for {subject} {session} run={run}: {e}")
-                else:
-                    row['Eddyqc_Status'] = "FALSE"  # QC files missing
-
         else:
+            # Log missing but continue to check qc files
             row['Eddyqc_Log'] = "NO_LOG"
-            row['Eddyqc_Status'] = "FALSE"
+
+        qc_pdf = os.path.join(qc_folder, "qc.pdf")
+        qc_json = os.path.join(qc_folder, "qc.json")
+
+        # Always check qc files
+        if os.path.exists(qc_pdf) and os.path.exists(qc_json):
+            row['Eddyqc_Status'] = "TRUE"
+            try:
+                with open(qc_json, 'r') as jq:
+                    qc_data = json.load(jq)
+
+                for key in keys_to_add:
+                    if key in qc_data:
+                        value = qc_data[key]
+                        if isinstance(value, (list, dict)):
+                            value = json.dumps(value)
+                        else:
+                            value = str(value)
+                        row[key] = value
+
+            except Exception as e:
+                print(f"Warning: Failed to read or parse qc.json for {subject} {session} run={run}: {e}")
+        else:
+            # QC files missing, set status false only if not already false due to log errors
+            if row['Eddyqc_Status'] != "FALSE":
+                row['Eddyqc_Status'] = "FALSE"
 
         if args.test and idx >= 10:
             break
@@ -508,6 +508,32 @@ def update_eddyqc_status(args):
 
     return rows
 
+def print_csv_filtered(filename, max_rows=10, exclude_prefix="qc_"):
+    with open(filename, 'r') as f:
+        reader = csv.reader(f)
+        rows = list(reader)
+
+    if not rows:
+        print("(CSV is empty)")
+        return
+
+    header = rows[0]
+    data_rows = rows[1:max_rows+1]
+
+    # Find indices of columns to exclude
+    exclude_indices = [i for i, col in enumerate(header) if col.startswith(exclude_prefix)]
+
+    # Build filtered header and rows
+    filtered_header = [col for i, col in enumerate(header) if i not in exclude_indices]
+    filtered_rows = [
+        [val for i, val in enumerate(row) if i not in exclude_indices]
+        for row in data_rows
+    ]
+
+    # Print filtered CSV as table-like text
+    print(",".join(filtered_header))
+    for row in filtered_rows:
+        print(",".join(row))
 
 def main():
     args = parse_args()
@@ -515,7 +541,6 @@ def main():
     if not (args.getsubjects or args.denoise or args.rmgibbs or args.eddy or args.eddyqc):
         print_usage()
         sys.exit(1)
-
 
     if args.getsubjects:
         rows, matching_sessions, total_sessions = scan_subjects(args)
@@ -529,55 +554,45 @@ def main():
         print(f"Total session folders: {total_sessions}")
         print(f"Rows written to CSV: {len(rows)}")
         print(f"Results written to: {args.output}")
+
         if args.test:
-            print("\nCSV Content (Test Mode):")
-            with open(args.output, 'r') as f:
-                print(f.read())
+            print("\nCSV Content (Test Mode, excluding qc_ columns):")
+            print_csv_filtered(args.output, max_rows=10, exclude_prefix="qc_")
 
     if args.denoise:
         rows = update_denoise_status(args)
 
-        # If --test is enabled, limit to the first 10 rows
         if args.test:
             rows_to_process = rows[:10]
         else:
             rows_to_process = rows
 
-        # Calculate passes and fails based on updated rows (only first 10 rows in test mode)
         passes = sum(1 for r in rows_to_process if r['Denoised_Status'] == 'TRUE')
         fails = sum(1 for r in rows_to_process if r['Denoised_Status'] == 'FALSE')
 
         print(f"Denoised_Status counts: PASS = {passes}, FAILED = {fails}")
 
         if args.test:
-            print("\nCSV Content (Test Mode - First 10 Rows):")
-            with open(args.output, 'r') as f:
-                # Limit output to the first 10 rows
-                lines = f.readlines()
-                print("".join(lines[:10]))
+            print("\nCSV Content (Test Mode - First 10 Rows, excluding qc_ columns):")
+            print_csv_filtered(args.output, max_rows=10, exclude_prefix="qc_")
+
     if args.rmgibbs:
         rows = update_rmgibbs_status(args)
 
-        # Limit to first 10 rows if test mode is enabled
         if args.test:
             rows_to_process = rows[:10]
         else:
             rows_to_process = rows
 
-        # Count TRUE and FALSE in Rmgibbs_Status
         passes = sum(1 for r in rows_to_process if r.get('Rmgibbs_Status') == 'TRUE')
         fails = sum(1 for r in rows_to_process if r.get('Rmgibbs_Status') == 'FALSE')
 
         print(f"Rmgibbs_Status counts: PASS = {passes}, FAILED = {fails}")
 
-        # Show first 10 rows of the CSV if in test mode
         if args.test:
-            print("\nCSV Content (Test Mode - First 10 Rows):")
-            with open(args.output, 'r') as f:
-                lines = f.readlines()
-                print("".join(lines[:11]))  # 1 header + 10 rows
+            print("\nCSV Content (Test Mode - First 10 Rows, excluding qc_ columns):")
+            print_csv_filtered(args.output, max_rows=10, exclude_prefix="qc_")
 
-    
     if args.eddy:
         rows = update_eddy_status(args)
 
@@ -586,37 +601,38 @@ def main():
         else:
             rows_to_process = rows
 
-        passes = sum(1 for r in rows_to_process if r.get('Eddy_Status') == 'TRUE')
-        fails = sum(1 for r in rows_to_process if r.get('Eddy_Status') == 'FALSE')
+        valid_rows = [
+            r for r in rows_to_process
+            if r.get('Denoised_Status') == 'TRUE' and r.get('Rmgibbs_Status') == 'TRUE'
+        ]
 
-        print(f"Eddy_Status counts: PASS = {passes}, FAILED = {fails}")
+        passes = sum(1 for r in valid_rows if r.get('Eddy_Status') == 'TRUE')
+        fails = sum(1 for r in valid_rows if r.get('Eddy_Status') == 'FALSE')
+
+        print(f"Eddy_Status counts (only Denoised and Rmgibbs TRUE rows): PASS = {passes}, FAILED = {fails}")
 
         if args.test:
-            print("\nCSV Content (Test Mode - First 10 Rows):")
-            with open(args.output, 'r') as f:
-                lines = f.readlines()
-                print("".join(lines[:11]))  # 1 header + 10 rows
+            print("\nCSV Content (Test Mode - First 10 Rows, excluding qc_ columns):")
+            print_csv_filtered(args.output, max_rows=10, exclude_prefix="qc_")
 
     if args.eddyqc:
         rows = update_eddyqc_status(args)
-        # Limit to first 10 rows if test mode is enabled
+
         if args.test:
             rows_to_process = rows[:10]
         else:
             rows_to_process = rows
 
-        # Count TRUE and FALSE in Eddyqc_Status
-        passes = sum(1 for r in rows_to_process if r.get('Eddyqc_Status') == 'TRUE')
-        fails = sum(1 for r in rows_to_process if r.get('Eddyqc_Status') == 'FALSE')
+        valid_rows = [r for r in rows_to_process if r.get('Eddy_Status') == 'TRUE']
 
-        print(f"Eddyqc_Status counts: PASS = {passes}, FAILED = {fails}")
+        passes = sum(1 for r in valid_rows if r.get('Eddyqc_Status') == 'TRUE')
+        fails = sum(1 for r in valid_rows if r.get('Eddyqc_Status') == 'FALSE')
 
-        # Show first 10 rows of the CSV if in test mode
+        print(f"Eddyqc_Status counts (only Eddy_Status TRUE rows): PASS = {passes}, FAILED = {fails}")
+
         if args.test:
-            print("\nCSV Content (Test Mode - First 10 Rows):")
-            with open(args.output, 'r') as f:
-                lines = f.readlines()
-                print("".join(lines[:11]))  # 1 header + 10 rows
+            print("\nCSV Content (Test Mode - First 10 Rows, excluding qc_ columns):")
+            print_csv_filtered(args.output, max_rows=10, exclude_prefix="qc_")
 
 
 if __name__ == "__main__":
