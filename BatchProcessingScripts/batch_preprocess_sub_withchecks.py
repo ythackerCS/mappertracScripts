@@ -1,148 +1,148 @@
-#!/bin/bash
+#!/usr/bin/env python3
 
-# Modify this variable as needed to point to your submit scripts location:
-scripts_path="/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/code/Preprocessing"
+import argparse
+import csv
+import subprocess
+import os
+import sys
+from pathlib import Path
 
-# Destination derivatives directory root
-dest_dir_root="/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/derivatives"
+# Default paths (change if needed)
+SCRIPTS_PATH = "/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/code/Preprocessing"
+DERIV_ROOT = "/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/derivatives"
 
-# Default values
-input_file=""
-base_path=""
-subject=""
-session=""
-run=""
-run_denoise=false
-run_gibbs=false
-run_eddy=false
-run_eddyqc=false
-run_t1qc=false
-test_mode=false
+def parse_args():
+    parser = argparse.ArgumentParser(description="Batch preprocess with failure checks")
+    parser.add_argument("input_file", nargs='?', default=None,
+                        help="CSV failure report file or omit for individual subject mode")
+    parser.add_argument("--base-path", required=False,
+                        default="/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS",
+                        help="Base BIDS dataset path")
+    parser.add_argument("--subject", help="Subject ID (e.g. sub-XXX)")
+    parser.add_argument("--session", help="Session ID (e.g. ses-XXX)")
+    parser.add_argument("--run", default="", help="Run ID (e.g. run-YYY)")
+    parser.add_argument("--all", action="store_true", help="Run all steps")
+    parser.add_argument("--denoise", action="store_true")
+    parser.add_argument("--gibbs", action="store_true")
+    parser.add_argument("--eddy", action="store_true")
+    parser.add_argument("--eddyqc", action="store_true")
+    parser.add_argument("--t1qc", action="store_true")
+    parser.add_argument("--test", action="store_true",
+                        help="If CSV input given, only process first subject")
 
-# Helper associative array to hold failure flags from CSV
-declare -A failure_map
+    args = parser.parse_args()
 
-# Usage
-usage() {
-    echo "Usage: $0 [failure_report.csv | --subject sub-XXX --session ses-XXX [--run run-YYY]] --base-path /path/to/BIDS [--all | --denoise --gibbs --eddy --eddyqc --t1qc] [--test]"
-    exit 1
-}
+    # Validation
+    if args.input_file:
+        if args.subject or args.session:
+            parser.error("Specify either a CSV input file or --subject/--session, not both.")
+    else:
+        if not args.subject or not args.session:
+            parser.error("Either provide a CSV file or both --subject and --session.")
 
-# Check if first arg is a CSV file
-if [[ $# -gt 0 && "$1" != --* ]]; then
-    input_file="$1"
-    shift
-fi
+    # If --all set, enable all steps
+    if args.all:
+        args.denoise = True
+        args.gibbs = True
+        args.eddy = True
+        args.eddyqc = True
+        args.t1qc = True
 
-# Parse arguments
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --base-path) shift; base_path="$1" ;;
-        --subject) shift; subject="$1" ;;
-        --session) shift; session="$1" ;;
-        --run) shift; run="$1" ;;
-        --all) run_denoise=true; run_gibbs=true; run_eddy=true; run_eddyqc=true; run_t1qc=true ;;
-        --denoise) run_denoise=true ;;
-        --gibbs)   run_gibbs=true ;;
-        --eddy)    run_eddy=true ;;
-        --eddyqc)  run_eddyqc=true ;;
-        --t1qc)    run_t1qc=true ;;
-        --test)    test_mode=true ;;
-        *) echo "Unknown option: $1"; usage ;;
-    esac
-    shift
-done
+    # If no processing flags set and not --all, exit with usage
+    if not (args.denoise or args.gibbs or args.eddy or args.eddyqc or args.t1qc):
+        parser.error("No processing steps selected. Use --all or individual flags.")
 
-# Validate inputs
-if [[ -z "$base_path" ]]; then
-    echo "Error: --base-path is required"
-    usage
-fi
+    return args
 
-if [[ -n "$input_file" && ( -n "$subject" || -n "$session" ) ]]; then
-    echo "Error: Specify either a CSV input file or --subject/--session, not both."
-    usage
-fi
+def read_csv_failures(csv_file):
+    failure_map = {}
+    with open(csv_file, newline='') as f:
+        reader = csv.reader(f)
+        next(reader)  # skip header
+        for row in reader:
+            if len(row) < 10:
+                continue
+            sub, ses, run = row[0], row[1], row[2]
+            denoise_fail = row[6]
+            gibbs_fail = row[7]
+            eddy_fail = row[8]
+            key = f"{sub}_{ses}_{run}"
+            failure_map[(key, "denoised")] = denoise_fail
+            failure_map[(key, "rmgibbs")] = gibbs_fail
+            failure_map[(key, "eddy")] = eddy_fail
+    return failure_map
 
-if [[ -z "$input_file" && ( -z "$subject" || -z "$session" ) ]]; then
-    echo "Error: Either provide a CSV file or both --subject and --session."
-    usage
-fi
+def run_script(script_name, base_path, sub, ses, run=""):
+    cmd = [os.path.join(SCRIPTS_PATH, script_name), base_path, sub, ses]
+    if run:
+        cmd.append(run)
+    print("Running:", " ".join(cmd))
+    try:
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {script_name} failed for {sub} {ses} {run} with {e}", file=sys.stderr)
 
-# Function to read CSV into failure_map
-read_csv_failures() {
-    local csv_file="$1"
-    tail -n +2 "$csv_file" | while IFS=',' read -r sub ses run _ _ _ denoise_fail gibbs_fail eddy_fail _; do
-        key="${sub}_${ses}_${run}"
-        failure_map["$key,denoised"]="$denoise_fail"
-        failure_map["$key,rmgibbs"]="$gibbs_fail"
-        failure_map["$key,eddy"]="$eddy_fail"
-    done
-}
+def process_subject_session(sub, ses, run, args, failure_map):
+    key = f"{sub}_{ses}_{run}"
 
-# Launch logic based on prior step success
-process_subject_session() {
-    local sub="$1"
-    local ses="$2"
-    local run="$3"
-    local key="${sub}_${ses}_${run}"
+    print(f"Processing {sub} {ses} {run}")
 
-    echo "Processing $sub $ses ${run:+$run}"
+    if args.denoise:
+        run_script("submit_01_bids_denoise.sh", args.base_path, sub, ses, run)
 
-    if $run_denoise; then
-        "$scripts_path"/submit_01_bids_denoise.sh "$base_path" "$sub" "$ses" "$run"
-    fi
+    if args.gibbs:
+        if failure_map.get((key, "denoised"), "False") != "True":
+            run_script("submit_02_bids_gibbsringing.sh", args.base_path, sub, ses, run)
+        else:
+            print(f"Skipping gibbs: denoised step failed for {key}")
 
-    if $run_gibbs; then
-        if [[ "${failure_map[$key,denoised]}" != "True" ]]; then
-            "$scripts_path"/submit_02_bids_gibbsringing.sh "$base_path" "$sub" "$ses" "$run"
-        else
-            echo "Skipping gibbs: denoised step failed for $key"
-        fi
-    fi
+    if args.eddy:
+        if failure_map.get((key, "rmgibbs"), "False") != "True":
+            run_script("submit_03_bids_eddy.sh", args.base_path, sub, ses, run)
+        else:
+            print(f"Skipping eddy: rmgibbs step failed for {key}")
 
-    if $run_eddy; then
-        if [[ "${failure_map[$key,rmgibbs]}" != "True" ]]; then
-            "$scripts_path"/submit_03_bids_eddy.sh "$base_path" "$sub" "$ses" "$run"
-        else
-            echo "Skipping eddy: rmgibbs step failed for $key"
-        fi
-    fi
+    if args.eddyqc:
+        if failure_map.get((key, "eddy"), "False") != "True":
+            run_script("submit_04_bids_eddyqc.sh", args.base_path, sub, ses, run)
+        else:
+            print(f"Skipping eddyqc: eddy step failed for {key}")
 
-    if $run_eddyqc; then
-        if [[ "${failure_map[$key,eddy]}" != "True" ]]; then
-            "$scripts_path"/submit_04_bids_eddyqc.sh "$base_path" "$sub" "$ses" "$run"
-        else
-            echo "Skipping eddyqc: eddy step failed for $key"
-        fi
-    fi
+    if args.t1qc:
+        t1_qc_path = Path(DERIV_ROOT) / sub / ses / "t1_qc"
+        qc_files = list(t1_qc_path.glob("qc*.csv"))
+        if qc_files:
+            print(f"T1 QC already exists at {t1_qc_path} — skipping.")
+        else:
+            run_script("submit_05_T1_qc.sh", args.base_path, sub, ses)
 
-    if $run_t1qc; then
-        local t1_qc_path="$dest_dir_root/$sub/$ses/t1_qc"
-        if compgen -G "$t1_qc_path"/qc*.csv > /dev/null; then
-            echo "T1 QC already exists at $t1_qc_path — skipping."
-        else
-            "$scripts_path"/submit_05_T1_qc.sh "$base_path" "$sub" "$ses"
-        fi
-    fi
+    print(f"Finished {sub} {ses} {run}")
+    print("-----------------------------")
 
-    echo "Finished $sub $ses ${run:+$run}"
-    echo "-----------------------------"
-}
+def main():
+    args = parse_args()
 
-# If using a CSV, read it into memory first
-if [[ -n "$input_file" ]]; then
-    read_csv_failures "$input_file"
-    tail -n +2 "$input_file" | while IFS=',' read -r sub ses run _; do
-        [[ -z "$sub" || -z "$ses" ]] && continue
-        process_subject_session "$sub" "$ses" "$run"
+    failure_map = {}
+    if args.input_file:
+        failure_map = read_csv_failures(args.input_file)
+        count = 0
+        with open(args.input_file, newline='') as f:
+            reader = csv.reader(f)
+            next(reader)
+            for row in reader:
+                if len(row) < 3:
+                    continue
+                sub, ses, run = row[0], row[1], row[2]
+                if not sub or not ses:
+                    continue
+                process_subject_session(sub, ses, run, args, failure_map)
+                count += 1
+                if args.test:
+                    print("Test mode: stopping after first subject.")
+                    break
+    else:
+        # individual mode: no failure checks needed (empty failure_map)
+        process_subject_session(args.subject, args.session, args.run, args, failure_map)
 
-        if $test_mode; then
-            echo "Test mode: stopping after first subject."
-            break
-        fi
-    done
-else
-    process_subject_session "$subject" "$session" "$run"
-fi
-
+if __name__ == "__main__":
+    main()

@@ -24,6 +24,8 @@ def parse_args():
     parser.add_argument("--denoise", action='store_true', help="Check denoise logs and derivatives files and update CSV")
     parser.add_argument("--rmgibbs", action='store_true', help="Check rmgibbs logs and update CSV")
     parser.add_argument('--eddy', action='store_true', help='Update Eddy status in the CSV')
+    parser.add_argument('--eddyqc', action='store_true', help='Run EddyQC status update')
+
     return parser.parse_args()
 
 def print_usage():
@@ -384,12 +386,153 @@ def update_eddy_status(args):
 
     return rows
 
+import os
+import sys
+import csv
+import json
+
+def update_eddyqc_status(args):
+    if not os.path.exists(args.output):
+        print(f"Error: CSV file '{args.output}' not found. Run with --getsubjects first.")
+        sys.exit(1)
+
+    with open(args.output, 'r') as f:
+        reader = csv.DictReader(f)
+        # Clean up fieldnames to avoid spaces
+        fieldnames = [name.strip() for name in reader.fieldnames]
+        rows = [row for row in reader]
+
+    # Check required columns for Eddy
+    if 'Eddy_Log' not in fieldnames or 'Eddy_Status' not in fieldnames:
+        print("Error: CSV is missing required columns: 'Eddy_Log' and/or 'Eddy_Status'.")
+        print("Please run the script with --eddy first before running --eddyqc.")
+        sys.exit(1)
+
+    # Add Eddyqc_Log and Eddyqc_Status columns if missing
+    if 'Eddyqc_Log' not in fieldnames:
+        fieldnames.append('Eddyqc_Log')
+    if 'Eddyqc_Status' not in fieldnames:
+        fieldnames.append('Eddyqc_Status')
+
+    # Keys from qc.json to add as columns
+    keys_to_add = [
+        "qc_cnr_avg", "qc_cnr_flag", "qc_cnr_std", "qc_field_flag",
+        "qc_mot_abs", "qc_mot_rel", "qc_ol_flag",
+        "qc_outliers_b", "qc_outliers_pe", "qc_outliers_tot",
+        "qc_params_avg", "qc_params_flag", "qc_path",
+        "qc_rss_flag", "qc_s2v_params_avg_std", "qc_s2v_params_flag",
+        "qc_vox_displ_std"
+    ]
+
+    # Add keys_to_add as columns if missing
+    for key in keys_to_add:
+        if key not in fieldnames:
+            fieldnames.append(key)
+
+    for idx, row in enumerate(rows):
+        subject = row['Subject']
+        session = row['Session']
+        run = row['Run']
+
+        # Default values
+        row['Eddyqc_Log'] = row.get('Eddyqc_Log', 'NO_LOG')
+        row['Eddyqc_Status'] = row.get('Eddyqc_Status', 'FALSE')
+
+        # Clear all keys_to_add values by default to avoid old data
+        for key in keys_to_add:
+            row[key] = ''
+
+        if run:
+            log_file = os.path.join(args.log_dir, f"{subject}_{session}_{run}_job-04_eddyqc.out")
+        else:
+            log_file = os.path.join(args.log_dir, f"{subject}_{session}_job-04_eddyqc_norun.out")
+
+        if os.path.exists(log_file):
+            with open(log_file, 'r') as lf:
+                content = lf.read().lower()
+
+                if "denoised_rmgibbs_eddy does not appear to be a valid eddy output basename" in content:
+                    row['Eddyqc_Log'] = "MISSING EDDY"
+                    row['Eddyqc_Status'] = "FALSE"
+
+                elif "complete" in content:
+                    if run:
+                        qc_folder = os.path.join(
+                            args.derivatives_dir,
+                            subject,
+                            session,
+                            'preproc',
+                            f"{subject}_{session}_{run}_denoised_rmgibbs_eddy.qc"
+                        )
+                    else:
+                        qc_folder = os.path.join(
+                            args.derivatives_dir,
+                            subject,
+                            session,
+                            'preproc',
+                            f"{subject}_{session}_denoised_rmgibbs_eddy.qc"
+                        )
+
+                    qc_pdf = os.path.join(qc_folder, "qc.pdf")
+                    qc_json = os.path.join(qc_folder, "qc.json")
+
+                    if os.path.exists(qc_pdf) and os.path.exists(qc_json):
+                        row['Eddyqc_Log'] = "TRUE"
+                        row['Eddyqc_Status'] = "TRUE"
+
+                        # Read qc.json and append values to row
+                        try:
+                            with open(qc_json, 'r') as jq:
+                                qc_data = json.load(jq)
+
+                            for key in keys_to_add:
+                                if key in qc_data:
+                                    # Convert lists/dicts to string, else direct cast
+                                    value = qc_data[key]
+                                    if isinstance(value, (list, dict)):
+                                        value = json.dumps(value)
+                                    else:
+                                        value = str(value)
+                                    row[key] = value
+
+                        except Exception as e:
+                            print(f"Warning: Failed to read or parse qc.json for {subject} {session} run={run}: {e}")
+
+                    else:
+                        row['Eddyqc_Log'] = "TRUE"
+                        row['Eddyqc_Status'] = "FALSE"  # QC files missing
+
+                elif "fail" in content:
+                    row['Eddyqc_Log'] = "FAIL"
+                    row['Eddyqc_Status'] = "FALSE"
+
+                else:
+                    row['Eddyqc_Log'] = "IN_PROGRESS"
+                    row['Eddyqc_Status'] = "FALSE"
+
+        else:
+            row['Eddyqc_Log'] = "NO_LOG"
+            row['Eddyqc_Status'] = "FALSE"
+
+        if args.test and idx >= 10:
+            break
+
+    # Write updated rows back to CSV including new columns
+    with open(args.output, 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    return rows
+
+
 def main():
     args = parse_args()
 
-    if not (args.getsubjects or args.denoise or args.rmgibbs or args.eddy):
+    if not (args.getsubjects or args.denoise or args.rmgibbs or args.eddy or args.eddyqc):
         print_usage()
         sys.exit(1)
+
 
     if args.getsubjects:
         rows, matching_sessions, total_sessions = scan_subjects(args)
@@ -470,6 +613,28 @@ def main():
             with open(args.output, 'r') as f:
                 lines = f.readlines()
                 print("".join(lines[:11]))  # 1 header + 10 rows
+
+    if args.eddyqc:
+        rows = update_eddyqc_status(args)
+        # Limit to first 10 rows if test mode is enabled
+        if args.test:
+            rows_to_process = rows[:10]
+        else:
+            rows_to_process = rows
+
+        # Count TRUE and FALSE in Eddyqc_Status
+        passes = sum(1 for r in rows_to_process if r.get('Eddyqc_Status') == 'TRUE')
+        fails = sum(1 for r in rows_to_process if r.get('Eddyqc_Status') == 'FALSE')
+
+        print(f"Eddyqc_Status counts: PASS = {passes}, FAILED = {fails}")
+
+        # Show first 10 rows of the CSV if in test mode
+        if args.test:
+            print("\nCSV Content (Test Mode - First 10 Rows):")
+            with open(args.output, 'r') as f:
+                lines = f.readlines()
+                print("".join(lines[:11]))  # 1 header + 10 rows
+
 
 if __name__ == "__main__":
     main()
