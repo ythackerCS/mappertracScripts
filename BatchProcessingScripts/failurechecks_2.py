@@ -142,6 +142,19 @@ def main():
 
                     log_has_errors = check_log_for_failure(log_path)
 
+                    # Check for specific reasons in log
+                    reason = None
+                    try:
+                        if os.path.isfile(log_path):
+                            with open(log_path, 'r', errors='ignore') as f:
+                                content = f.read().lower()
+                                if "skipping" in content:
+                                    reason = "SKIPPING"
+                                elif "all bvals are the same value" in content:
+                                    reason = "All bvals are the same value"
+                    except Exception:
+                        pass
+
                     brain_file = base_name + "_dwi_denoised_rmgibbs_eddy_brain.nii.gz"
                     mask_file = base_name + "_dwi_denoised_rmgibbs_eddy_mask.nii.gz"
 
@@ -151,11 +164,13 @@ def main():
                     output_missing = not (os.path.isfile(brain_path) and os.path.isfile(mask_path))
 
                     row['eddy_log_has_errors'] = log_has_errors
-                    # Eddy only fails if both: outputs are missing AND log has error
                     row['eddy_failed'] = output_missing and log_has_errors
+                    row['eddy_failure_reason'] = reason if row['eddy_failed'] else ''
                 else:
                     row['eddy_failed'] = False
                     row['eddy_log_has_errors'] = False
+                    row['eddy_failure_reason'] = ''
+
 
             ### EDDYQC CHECK ###
             if check_eddyqc_flag:
@@ -164,14 +179,16 @@ def main():
 
             rows.append(row)
 
-    # Determine which failure/log columns to include in the CSV
-    failure_cols = [
-        col for col in [
-            'eddyqc_failed', 'eddy_failed', 'eddy_log_has_errors',
-            'rmgibbs_failed', 'rmgibbs_log_has_errors',
-            'denoised_failed', 'denoised_log_has_errors'
-        ] if any(col in r for r in rows)
+    # Define failure columns in logical order of steps
+    ordered_failure_cols = [
+        'denoised_failed', 'denoised_log_has_errors',
+        'rmgibbs_failed', 'rmgibbs_log_has_errors',
+        'eddy_failed', 'eddy_log_has_errors',
+        'eddyqc_failed'  # add later when eddyqc is implemented
     ]
+
+    # Keep only the ones that are present in the data
+    failure_cols = [col for col in ordered_failure_cols if any(col in r for r in rows)]
 
     # Sort rows: by failure flags first, then by descending bval word count
     def sort_key(r):
@@ -182,6 +199,9 @@ def main():
 
     # Final CSV fieldnames
     fieldnames = ['subject', 'session', 'run', 'dwi_file', 'dwi_path', 'bval_word_count'] + failure_cols
+    
+    if 'eddy_failed' in failure_cols:
+        fieldnames.append('eddy_failure_reason')
 
     with open(OUTPUT_CSV, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
