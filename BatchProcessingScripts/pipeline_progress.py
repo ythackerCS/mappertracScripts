@@ -2,6 +2,8 @@ import os
 import csv
 import argparse
 import sys
+import json 
+
 
 # Defaults
 output_file = "pipeline_progress.csv"
@@ -89,12 +91,30 @@ def scan_subjects(args):
                     valid, count = check_bval_file(full_bval_path, args.bvalneeded)
                     if not valid:
                         continue
+
+                    # Determine run number
                     if '_run-' in bval_file:
                         run_num = bval_file.split('_run-')[-1].split('_dwi.bval')[0]
                         run_num = f"run-{run_num}"
+                        base_name = bval_file.replace('.bval', '')  # same base for json
                     else:
                         run_num = ""
-                    rows.append([subject, session, run_num, count])
+                        base_name = bval_file.replace('.bval', '')  # e.g., sub-xxx_ses-yyy_dwi
+
+                    # Look for the corresponding JSON sidecar file
+                    json_path = os.path.join(dwi_dir, base_name + '.json')
+                    acq_time = ""
+                    series_desc = ""
+                    if os.path.exists(json_path):
+                        try:
+                            with open(json_path, 'r') as jf:
+                                metadata = json.load(jf)
+                                acq_time = metadata.get("AcquisitionTime", "")
+                                series_desc = metadata.get("SeriesDescription", "")
+                        except json.JSONDecodeError:
+                            print(f"Warning: Failed to parse JSON: {json_path}")
+
+                    rows.append([subject, session, run_num, count, acq_time, series_desc])
                     matching_sessions += 1
                     total_sessions += 1
 
@@ -106,10 +126,6 @@ def scan_subjects(args):
         if args.test and len(rows) >= 10:
             break
     return rows, matching_sessions, total_sessions
-
-import csv
-import os
-import sys
 
 def update_denoise_status(args):
     # Check if the CSV file exists
@@ -168,11 +184,12 @@ def update_denoise_status(args):
 
                 # If the log contains "COMPLETED", check for the denoised file
                 elif "COMPLETED" in log_content:
-                    if run and run != "":
-                        file_path = os.path.join(args.derivatives_dir, f"{subject}_{session}_{run}_dwi_denoised.nii.gz")
+                    if run:
+                        file_name = f"{subject}_{session}_{run}_dwi_denoised.nii.gz"
                     else:
-                        file_path = os.path.join(args.derivatives_dir, f"{subject}_{session}_dwi_denoised_.nii.gz")
-                    
+                        file_name = f"{subject}_{session}_dwi_denoised.nii.gz"
+                    file_path = os.path.join(args.derivatives_dir, subject, session, 'preproc', file_name)
+
                     # Update Denoised_Status based on file existence
                     if os.path.exists(file_path):
                         row['Denoised_Log'] = "TRUE"
@@ -210,7 +227,7 @@ def main():
         rows, matching_sessions, total_sessions = scan_subjects(args)
         with open(args.output, 'w', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(["Subject","Session","Run","Bval_Word_Count"])
+            writer.writerow(["Subject", "Session", "Run", "Bval_Word_Count", "AcquisitionTime", "SeriesDescription"])
             for row in rows:
                 writer.writerow(row)
         print(f"Using bvalneeded threshold: {args.bvalneeded}")
