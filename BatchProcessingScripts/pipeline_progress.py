@@ -9,7 +9,7 @@ import json
 output_file = "pipeline_progress.csv"
 bval_needed = 30
 data_root_default = "/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/sourcedata"
-log_dir_default = "/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/misc/logs/job-02_rmgibbs"
+log_dir_default = "/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/misc/logs"
 derivatives_dir_default = "/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/derivatives"
 
 def parse_args():
@@ -23,6 +23,7 @@ def parse_args():
     parser.add_argument("--getsubjects", action='store_true', help="Scan subjects, sessions, runs and write CSV")
     parser.add_argument("--denoise", action='store_true', help="Check denoise logs and derivatives files and update CSV")
     parser.add_argument("--rmgibbs", action='store_true', help="Check rmgibbs logs and update CSV")
+    parser.add_argument('--eddy', action='store_true', help='Update Eddy status in the CSV')
     return parser.parse_args()
 
 def print_usage():
@@ -224,12 +225,17 @@ def update_rmgibbs_status(args):
         print(f"Error: CSV file '{args.output}' not found. Run with --getsubjects first.")
         sys.exit(1)
 
-    # Load the existing CSV
-    rows = []
+    # Load CSV and check for required columns
     with open(args.output, 'r') as f:
         reader = csv.DictReader(f)
         fieldnames = [name.strip() for name in reader.fieldnames]
         rows = [row for row in reader]
+
+    # Check for required columns from previous stages
+    if 'Denoised_Log' not in fieldnames or 'Denoised_Status' not in fieldnames:
+        print("Error: CSV is missing required columns: 'Denoised_Log' and/or 'Denoised_Status'.")
+        print("Please run the script with --denoise first before running --rmgibbs.")
+        sys.exit(1)
 
     # Add columns if missing
     if 'Rmgibbs_Log' not in fieldnames:
@@ -290,12 +296,100 @@ def update_rmgibbs_status(args):
 
     return rows
 
+def update_eddy_status(args):
+    if not os.path.exists(args.output):
+        print(f"Error: CSV file '{args.output}' not found. Run with --getsubjects first.")
+        sys.exit(1)
+
+    # Load CSV and check for required columns
+    with open(args.output, 'r') as f:
+        reader = csv.DictReader(f)
+        fieldnames = [name.strip() for name in reader.fieldnames]
+        rows = [row for row in reader]
+
+    # Check for required columns from previous stages
+    required_cols = ['Denoised_Log', 'Denoised_Status', 'Rmgibbs_Log', 'Rmgibbs_Status']
+    missing_cols = [col for col in required_cols if col not in fieldnames]
+
+    if missing_cols:
+        print(f"Error: CSV is missing required columns: {', '.join(missing_cols)}.")
+        print("Please run the script with --denoise and --rmgibbs first before running --eddy.")
+        sys.exit(1)
+
+    # Add columns if missing
+    if 'Eddy_Log' not in fieldnames:
+        fieldnames.append('Eddy_Log')
+    if 'Eddy_Status' not in fieldnames:
+        fieldnames.append('Eddy_Status')
+
+    for idx, row in enumerate(rows):
+        subject = row['Subject']
+        session = row['Session']
+        run = row.get('Run', '')  # some rows may not have Run, but we try to be safe
+
+        # Default values
+        row['Eddy_Log'] = row.get('Eddy_Log', 'NO_LOG')
+        row['Eddy_Status'] = row.get('Eddy_Status', 'FALSE')
+
+        # Determine log filename
+        run_suffix = run if run else "norun"
+        log_file = os.path.join(args.log_dir, f"{subject}_{session}_job-03_eddy_{run_suffix}.out")
+
+        # Base filename for checking denoised rmgibbs output
+        if run:
+            rmgibbs_filename = f"{subject}_{session}_{run}_dwi_denoised_rmgibbs.nii.gz"
+        else:
+            rmgibbs_filename = f"{subject}_{session}_dwi_denoised_rmgibbs.nii.gz"
+        rmgibbs_path = os.path.join(args.derivatives_dir, subject, session, 'preproc', rmgibbs_filename)
+
+        # Check log content with unicode error safeguard
+        if os.path.exists(log_file):
+            try:
+                with open(log_file, 'r') as lf:
+                    content = lf.read().lower()  # case insensitive
+            except UnicodeDecodeError:
+                print(f"Warning: Log file '{log_file}' contains unusual unicode characters, reading with ignore errors.")
+                row['Eddy_Log'] = "RERUN_CHPCERROR"
+                row['Eddy_Status'] = "FALSE"
+                continue  # skip the rest of the loop for this row
+
+            if "skipping" in content:
+                row['Eddy_Log'] = "SKIPPED"
+                row['Eddy_Status'] = "FALSE"
+            elif "filenotfounderror" in content:
+                row['Eddy_Log'] = "FILENOTFOUND"
+                row['Eddy_Status'] = "FALSE"
+            elif "binary brain mask saved" in content or "found post-eddy brain mask" in content:
+                row['Eddy_Log'] = "COMPLETE"
+                if os.path.exists(rmgibbs_path):
+                    row['Eddy_Status'] = "TRUE"
+                else:
+                    row['Eddy_Status'] = "FALSE"
+            else:
+                row['Eddy_Log'] = "IN_PROGRESS"
+                row['Eddy_Status'] = "FALSE"
+        else:
+            row['Eddy_Log'] = "NO_LOG"
+            row['Eddy_Status'] = "FALSE"
+
+        # Limit in test mode
+        if args.test and idx >= 10:
+            break
+
+    # Write updated CSV
+    with open(args.output, 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    return rows
 
 def main():
     args = parse_args()
 
-    if not (args.getsubjects or args.denoise or args.rmgibbs):
+    if not (args.getsubjects or args.denoise or args.rmgibbs or args.eddy):
         print_usage()
+        sys.exit(1)
 
     if args.getsubjects:
         rows, matching_sessions, total_sessions = scan_subjects(args)
@@ -327,7 +421,7 @@ def main():
         passes = sum(1 for r in rows_to_process if r['Denoised_Status'] == 'TRUE')
         fails = sum(1 for r in rows_to_process if r['Denoised_Status'] == 'FALSE')
 
-        print(f"Denoised_Status counts: TRUE = {passes}, FALSE = {fails}")
+        print(f"Denoised_Status counts: PASS = {passes}, FAILED = {fails}")
 
         if args.test:
             print("\nCSV Content (Test Mode - First 10 Rows):")
@@ -348,7 +442,7 @@ def main():
         passes = sum(1 for r in rows_to_process if r.get('Rmgibbs_Status') == 'TRUE')
         fails = sum(1 for r in rows_to_process if r.get('Rmgibbs_Status') == 'FALSE')
 
-        print(f"Rmgibbs_Status counts: TRUE = {passes}, FALSE = {fails}")
+        print(f"Rmgibbs_Status counts: PASS = {passes}, FAILED = {fails}")
 
         # Show first 10 rows of the CSV if in test mode
         if args.test:
@@ -358,6 +452,24 @@ def main():
                 print("".join(lines[:11]))  # 1 header + 10 rows
 
     
+    if args.eddy:
+        rows = update_eddy_status(args)
+
+        if args.test:
+            rows_to_process = rows[:10]
+        else:
+            rows_to_process = rows
+
+        passes = sum(1 for r in rows_to_process if r.get('Eddy_Status') == 'TRUE')
+        fails = sum(1 for r in rows_to_process if r.get('Eddy_Status') == 'FALSE')
+
+        print(f"Eddy_Status counts: PASS = {passes}, FAILED = {fails}")
+
+        if args.test:
+            print("\nCSV Content (Test Mode - First 10 Rows):")
+            with open(args.output, 'r') as f:
+                lines = f.readlines()
+                print("".join(lines[:11]))  # 1 header + 10 rows
 
 if __name__ == "__main__":
     main()
