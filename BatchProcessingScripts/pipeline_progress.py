@@ -9,7 +9,7 @@ import json
 output_file = "pipeline_progress.csv"
 bval_needed = 30
 data_root_default = "/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/sourcedata"
-log_dir_default = "/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/misc/logs/job-01_denoise"
+log_dir_default = "/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/misc/logs/job-02_rmgibbs"
 derivatives_dir_default = "/ceph/chpc/shared/shinjini_kundu_group/working/yash/tbm_autism-BIDS/derivatives"
 
 def parse_args():
@@ -22,13 +22,15 @@ def parse_args():
     parser.add_argument("--test", action='store_true', help="Test mode: limit to first 10 rows and print CSV content")
     parser.add_argument("--getsubjects", action='store_true', help="Scan subjects, sessions, runs and write CSV")
     parser.add_argument("--denoise", action='store_true', help="Check denoise logs and derivatives files and update CSV")
+    parser.add_argument("--rmgibbs", action='store_true', help="Check rmgibbs logs and update CSV")
     return parser.parse_args()
 
 def print_usage():
-    print("Usage: Provide at least one of --getsubjects or --denoise flags.")
+    print("Usage: Provide at least one of --getsubjects, --denoise, or --rmgibbs flags.")
     print("Example:")
     print("  python script.py --getsubjects")
     print("  python script.py --denoise")
+    print("  python script.py --rmgibbs")
     print("  python script.py --getsubjects --test")
     sys.exit(1)
 
@@ -217,10 +219,82 @@ def update_denoise_status(args):
 
     return rows  # Return rows so you can process them for counts elsewhere
 
+def update_rmgibbs_status(args):
+    if not os.path.exists(args.output):
+        print(f"Error: CSV file '{args.output}' not found. Run with --getsubjects first.")
+        sys.exit(1)
+
+    # Load the existing CSV
+    rows = []
+    with open(args.output, 'r') as f:
+        reader = csv.DictReader(f)
+        fieldnames = [name.strip() for name in reader.fieldnames]
+        rows = [row for row in reader]
+
+    # Add columns if missing
+    if 'Rmgibbs_Log' not in fieldnames:
+        fieldnames.append('Rmgibbs_Log')
+    if 'Rmgibbs_Status' not in fieldnames:
+        fieldnames.append('Rmgibbs_Status')
+
+    for idx, row in enumerate(rows):
+        subject = row['Subject']
+        session = row['Session']
+        run = row['Run']
+
+        # Default values
+        row['Rmgibbs_Log'] = row.get('Rmgibbs_Log', 'NO_LOG')
+        row['Rmgibbs_Status'] = row.get('Rmgibbs_Status', 'FALSE')
+
+        # Determine log filename
+        run_suffix = run if run else "norun"
+        log_file = os.path.join(args.log_dir, f"{subject}_{session}_job-02_rmgibbs_{run_suffix}.out")
+
+        # Base filename for checking denoised output
+        if run:
+            denoised_filename = f"{subject}_{session}_{run}_dwi_denoised.nii.gz"
+        else:
+            denoised_filename = f"{subject}_{session}_dwi_denoised.nii.gz"
+        denoised_path = os.path.join(args.derivatives_dir, subject, session, 'preproc', denoised_filename)
+
+        # Check log content
+        if os.path.exists(log_file):
+            with open(log_file, 'r') as lf:
+                content = lf.read()
+
+                if "FAIL" in content:
+                    row['Rmgibbs_Log'] = "FAIL"
+                    row['Rmgibbs_Status'] = "FALSE"
+                elif "COMPLETE" in content:
+                    row['Rmgibbs_Log'] = "COMPLETE"
+                    if os.path.exists(denoised_path):
+                        row['Rmgibbs_Status'] = "TRUE"
+                    else:
+                        row['Rmgibbs_Status'] = "FALSE"
+                else:
+                    row['Rmgibbs_Log'] = "IN_PROGRESS"
+                    row['Rmgibbs_Status'] = "FALSE"
+        else:
+            row['Rmgibbs_Log'] = "NO_LOG"
+            row['Rmgibbs_Status'] = "FALSE"
+
+        # Limit in test mode
+        if args.test and idx >= 10:
+            break
+
+    # Write updated CSV
+    with open(args.output, 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    return rows
+
+
 def main():
     args = parse_args()
 
-    if not (args.getsubjects or args.denoise):
+    if not (args.getsubjects or args.denoise or args.rmgibbs):
         print_usage()
 
     if args.getsubjects:
@@ -261,6 +335,29 @@ def main():
                 # Limit output to the first 10 rows
                 lines = f.readlines()
                 print("".join(lines[:10]))
+    if args.rmgibbs:
+        rows = update_rmgibbs_status(args)
+
+        # Limit to first 10 rows if test mode is enabled
+        if args.test:
+            rows_to_process = rows[:10]
+        else:
+            rows_to_process = rows
+
+        # Count TRUE and FALSE in Rmgibbs_Status
+        passes = sum(1 for r in rows_to_process if r.get('Rmgibbs_Status') == 'TRUE')
+        fails = sum(1 for r in rows_to_process if r.get('Rmgibbs_Status') == 'FALSE')
+
+        print(f"Rmgibbs_Status counts: TRUE = {passes}, FALSE = {fails}")
+
+        # Show first 10 rows of the CSV if in test mode
+        if args.test:
+            print("\nCSV Content (Test Mode - First 10 Rows):")
+            with open(args.output, 'r') as f:
+                lines = f.readlines()
+                print("".join(lines[:11]))  # 1 header + 10 rows
+
+    
 
 if __name__ == "__main__":
     main()
