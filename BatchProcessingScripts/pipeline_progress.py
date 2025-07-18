@@ -151,25 +151,38 @@ def update_denoise_status(args):
         else:
             log_file = os.path.join(args.log_dir, f"{subject}_{session}_job-01_denoise_norun.out")  # For no run provided
 
-        # Get the denoised log status from the log file
-        denoise_log_status = check_denoised_log(log_file)
-        
-        # If the log exists and contains "TRUE", we update Denoised_Log and Denoised_Status
-        if denoise_log_status == "TRUE":
-            row['Denoised_Log'] = "TRUE"
-            row['Denoised_Status'] = "TRUE"
-        elif denoise_log_status == "FALSE":
-            row['Denoised_Log'] = "FALSE"
-            row['Denoised_Status'] = "FALSE"
-        
-        # Check if denoised file exists in the derivatives directory
-        file_exists = check_denoised_file(subject, session, run, args.derivatives_dir)
-        
-        # Update Denoised_Status based on file existence
-        if file_exists and denoise_log_status != "FALSE":
-            row['Denoised_Status'] = "TRUE"
-        else:
-            row['Denoised_Status'] = "FALSE"
+        # Check the contents of the log file and set the status
+        if os.path.exists(log_file):
+            with open(log_file, 'r') as f:
+                log_content = f.read()
+
+                # Check for "FAIL"
+                if "FAIL" in log_content:
+                    row['Denoised_Log'] = "FAIL"
+                    row['Denoised_Status'] = "FALSE"
+
+                # Check for "PCA denoising can only be performed on 4D arrays"
+                elif "PCA denoising can only be performed on 4D arrays" in log_content:
+                    row['Denoised_Log'] = "NOT4D"
+                    row['Denoised_Status'] = "FALSE"
+
+                # If the log contains "COMPLETED", check for the denoised file
+                elif "COMPLETED" in log_content:
+                    if run and run != "":
+                        file_path = os.path.join(args.derivatives_dir, f"{subject}_{session}_{run}_dwi_denoised.nii.gz")
+                    else:
+                        file_path = os.path.join(args.derivatives_dir, f"{subject}_{session}_dwi_denoised_.nii.gz")
+                    
+                    # Update Denoised_Status based on file existence
+                    if os.path.exists(file_path):
+                        row['Denoised_Log'] = "TRUE"
+                        row['Denoised_Status'] = "TRUE"
+                    else:
+                        row['Denoised_Log'] = "COMPLETED_BUT_FILE_MISSING"
+                        row['Denoised_Status'] = "FALSE"
+                else:
+                    row['Denoised_Log'] = "IN_PROGRESS"
+                    row['Denoised_Status'] = "FALSE"
 
         # If --test is enabled, only process the first 10 rows
         if args.test and idx >= 10:
