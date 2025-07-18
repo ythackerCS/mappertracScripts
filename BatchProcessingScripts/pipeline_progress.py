@@ -398,23 +398,19 @@ def update_eddyqc_status(args):
 
     with open(args.output, 'r') as f:
         reader = csv.DictReader(f)
-        # Clean up fieldnames to avoid spaces
         fieldnames = [name.strip() for name in reader.fieldnames]
         rows = [row for row in reader]
 
-    # Check required columns for Eddy
     if 'Eddy_Log' not in fieldnames or 'Eddy_Status' not in fieldnames:
         print("Error: CSV is missing required columns: 'Eddy_Log' and/or 'Eddy_Status'.")
         print("Please run the script with --eddy first before running --eddyqc.")
         sys.exit(1)
 
-    # Add Eddyqc_Log and Eddyqc_Status columns if missing
     if 'Eddyqc_Log' not in fieldnames:
         fieldnames.append('Eddyqc_Log')
     if 'Eddyqc_Status' not in fieldnames:
         fieldnames.append('Eddyqc_Status')
 
-    # Keys from qc.json to add as columns
     keys_to_add = [
         "qc_cnr_avg", "qc_cnr_flag", "qc_cnr_std", "qc_field_flag",
         "qc_mot_abs", "qc_mot_rel", "qc_ol_flag",
@@ -424,7 +420,6 @@ def update_eddyqc_status(args):
         "qc_vox_displ_std"
     ]
 
-    # Add keys_to_add as columns if missing
     for key in keys_to_add:
         if key not in fieldnames:
             fieldnames.append(key)
@@ -434,11 +429,9 @@ def update_eddyqc_status(args):
         session = row['Session']
         run = row['Run']
 
-        # Default values
         row['Eddyqc_Log'] = row.get('Eddyqc_Log', 'NO_LOG')
         row['Eddyqc_Status'] = row.get('Eddyqc_Status', 'FALSE')
 
-        # Clear all keys_to_add values by default to avoid old data
         for key in keys_to_add:
             row[key] = ''
 
@@ -451,64 +444,55 @@ def update_eddyqc_status(args):
             with open(log_file, 'r') as lf:
                 content = lf.read().lower()
 
-                if "denoised_rmgibbs_eddy does not appear to be a valid eddy output basename" in content:
-                    row['Eddyqc_Log'] = "MISSING EDDY"
-                    row['Eddyqc_Status'] = "FALSE"
+            if "denoised_rmgibbs_eddy does not appear to be a valid eddy output basename" in content:
+                row['Eddyqc_Log'] = "MISSING EDDY"
+                row['Eddyqc_Status'] = "FALSE"
+            elif "fail" in content:
+                row['Eddyqc_Log'] = "FAIL"
+                row['Eddyqc_Status'] = "FALSE"
+            else:
+                # Log exists but no critical errors → set Eddyqc_Log TRUE
+                row['Eddyqc_Log'] = "TRUE"
 
-                elif "complete" in content:
-                    if run:
-                        qc_folder = os.path.join(
-                            args.derivatives_dir,
-                            subject,
-                            session,
-                            'preproc',
-                            f"{subject}_{session}_{run}_denoised_rmgibbs_eddy.qc"
-                        )
-                    else:
-                        qc_folder = os.path.join(
-                            args.derivatives_dir,
-                            subject,
-                            session,
-                            'preproc',
-                            f"{subject}_{session}_denoised_rmgibbs_eddy.qc"
-                        )
-
-                    qc_pdf = os.path.join(qc_folder, "qc.pdf")
-                    qc_json = os.path.join(qc_folder, "qc.json")
-
-                    if os.path.exists(qc_pdf) and os.path.exists(qc_json):
-                        row['Eddyqc_Log'] = "TRUE"
-                        row['Eddyqc_Status'] = "TRUE"
-
-                        # Read qc.json and append values to row
-                        try:
-                            with open(qc_json, 'r') as jq:
-                                qc_data = json.load(jq)
-
-                            for key in keys_to_add:
-                                if key in qc_data:
-                                    # Convert lists/dicts to string, else direct cast
-                                    value = qc_data[key]
-                                    if isinstance(value, (list, dict)):
-                                        value = json.dumps(value)
-                                    else:
-                                        value = str(value)
-                                    row[key] = value
-
-                        except Exception as e:
-                            print(f"Warning: Failed to read or parse qc.json for {subject} {session} run={run}: {e}")
-
-                    else:
-                        row['Eddyqc_Log'] = "TRUE"
-                        row['Eddyqc_Status'] = "FALSE"  # QC files missing
-
-                elif "fail" in content:
-                    row['Eddyqc_Log'] = "FAIL"
-                    row['Eddyqc_Status'] = "FALSE"
-
+                if run:
+                    qc_folder = os.path.join(
+                        args.derivatives_dir,
+                        subject,
+                        session,
+                        'preproc',
+                        f"{subject}_{session}_{run}_denoised_rmgibbs_eddy.qc"
+                    )
                 else:
-                    row['Eddyqc_Log'] = "IN_PROGRESS"
-                    row['Eddyqc_Status'] = "FALSE"
+                    qc_folder = os.path.join(
+                        args.derivatives_dir,
+                        subject,
+                        session,
+                        'preproc',
+                        f"{subject}_{session}_denoised_rmgibbs_eddy.qc"
+                    )
+
+                qc_pdf = os.path.join(qc_folder, "qc.pdf")
+                qc_json = os.path.join(qc_folder, "qc.json")
+
+                if os.path.exists(qc_pdf) and os.path.exists(qc_json):
+                    row['Eddyqc_Status'] = "TRUE"
+                    try:
+                        with open(qc_json, 'r') as jq:
+                            qc_data = json.load(jq)
+
+                        for key in keys_to_add:
+                            if key in qc_data:
+                                value = qc_data[key]
+                                if isinstance(value, (list, dict)):
+                                    value = json.dumps(value)
+                                else:
+                                    value = str(value)
+                                row[key] = value
+
+                    except Exception as e:
+                        print(f"Warning: Failed to read or parse qc.json for {subject} {session} run={run}: {e}")
+                else:
+                    row['Eddyqc_Status'] = "FALSE"  # QC files missing
 
         else:
             row['Eddyqc_Log'] = "NO_LOG"
@@ -517,7 +501,6 @@ def update_eddyqc_status(args):
         if args.test and idx >= 10:
             break
 
-    # Write updated rows back to CSV including new columns
     with open(args.output, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
