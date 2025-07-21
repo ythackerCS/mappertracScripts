@@ -260,9 +260,9 @@ def update_rmgibbs_status(args):
 
         # Base filename for checking denoised output
         if run:
-            denoised_filename = f"{subject}_{session}_{run}_dwi_denoised.nii.gz"
+            denoised_filename = f"{subject}_{session}_{run}_dwi_denoised_rmgibbs.nii.gz"
         else:
-            denoised_filename = f"{subject}_{session}_dwi_denoised.nii.gz"
+            denoised_filename = f"{subject}_{session}_dwi_dwi_denoised_rmgibbs.nii.gz"
         denoised_path = os.path.join(args.derivatives_dir, subject, session, 'preproc', denoised_filename)
 
         # Check log content
@@ -339,9 +339,9 @@ def update_eddy_status(args):
 
         # Base filename for checking denoised rmgibbs output
         if run:
-            rmgibbs_filename = f"{subject}_{session}_{run}_dwi_denoised_rmgibbs.nii.gz"
+            rmgibbs_filename = f"{subject}_{session}_{run}_denoised_rmgibbs_eddy_brain.nii.gz"
         else:
-            rmgibbs_filename = f"{subject}_{session}_dwi_denoised_rmgibbs.nii.gz"
+            rmgibbs_filename = f"{subject}_{session}_denoised_rmgibbs_eddy_brain.nii.gz"
         rmgibbs_path = os.path.join(args.derivatives_dir, subject, session, 'preproc', rmgibbs_filename)
 
         # Check log content with unicode error safeguard
