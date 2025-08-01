@@ -55,21 +55,32 @@ def parse_args():
     return args
 
 def read_csv_failures(csv_file):
+    required_columns = ["subject", "session", "run"]
+    optional_columns = ["denoised", "rmgibbs", "eddy"]
     failure_map = {}
+
     with open(csv_file, newline='') as f:
-        reader = csv.reader(f)
-        next(reader)  # skip header
+        reader = csv.DictReader(f)
+        # Check required columns
+        for col in required_columns:
+            if col not in reader.fieldnames:
+                raise ValueError(f"Missing required column: '{col}' in CSV")
+        # Warn if optional columns are missing
+        for col in optional_columns:
+            if col not in reader.fieldnames:
+                print(f"Warning: Optional column '{col}' missing — related checks may be skipped.")
         for row in reader:
-            if len(row) < 10:
-                continue
-            sub, ses, run = row[0], row[1], row[2]
-            denoise_fail = row[6]
-            gibbs_fail = row[7]
-            eddy_fail = row[8]
+            sub = row["subject"]
+            ses = row["session"]
+            run = row["run"]
             key = f"{sub}_{ses}_{run}"
-            failure_map[(key, "denoised")] = denoise_fail
-            failure_map[(key, "rmgibbs")] = gibbs_fail
-            failure_map[(key, "eddy")] = eddy_fail
+            # Safely assign values, defaulting to "False" if missing
+            if "denoised" in row:
+                failure_map[(key, "denoised")] = row["denoised"]
+            if "rmgibbs" in row:
+                failure_map[(key, "rmgibbs")] = row["rmgibbs"]
+            if "eddy" in row:
+                failure_map[(key, "eddy")] = row["eddy"]
     return failure_map
 
 def run_script(script_name, base_path, sub, ses, run=""):
@@ -112,7 +123,7 @@ def process_subject_session(sub, ses, run, args, failure_map):
         t1_qc_path = Path(DERIV_ROOT) / sub / ses / "t1_qc"
         qc_files = list(t1_qc_path.glob("qc*.csv"))
         if qc_files:
-            print(f"T1 QC already exists at {t1_qc_path} — skipping.")
+            print(f"T1 QC already exists at {t1_qc_path} skipping.")
         else:
             run_script("submit_05_T1_qc.sh", args.base_path, sub, ses)
 
